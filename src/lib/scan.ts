@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { usageOf, type AiUsage } from "./aiCost";
 
 export const MODEL = "claude-opus-5-5";
 
@@ -158,6 +159,8 @@ export interface ScanRequest {
   timeBudgetMinutes: number;
   energy: "low" | "medium" | "high";
   previous?: { mess_score: number; zone_label: string };
+  /** Called with token counts and cost once the API answers. */
+  onUsage?: (usage: AiUsage) => void;
 }
 
 const client = new Anthropic();
@@ -198,6 +201,7 @@ export async function scanRoom(req: ScanRequest): Promise<ScanResult> {
     ],
   });
 
+  req.onUsage?.(usageOf(response));
   if (response.stop_reason === "refusal") {
     throw new ScanError("We couldn't scan that photo. Try a different one.");
   }
@@ -292,6 +296,7 @@ RULES:
 export async function setupRoom(req: {
   imageBase64: string;
   mediaType: "image/jpeg" | "image/png" | "image/webp";
+  onUsage?: (usage: AiUsage) => void;
 }): Promise<SetupResult> {
   const response = await client.beta.messages.create({
     model: MODEL,
@@ -314,6 +319,7 @@ export async function setupRoom(req: {
     ],
   });
 
+  req.onUsage?.(usageOf(response));
   if (response.stop_reason === "refusal") throw new ScanError("We couldn't scan that photo. Try a different one.");
   if (response.stop_reason === "max_tokens") throw new ScanError("The scan was cut short. Please try again.");
 

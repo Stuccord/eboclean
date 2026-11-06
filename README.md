@@ -113,12 +113,25 @@ To use real accounts with Supabase (free tier is fine):
 - Progress → account card → **Delete account**: cancels any Paystack subscription, deletes photos, synced data, profile and the login (required by Apple, Google and privacy laws).
 - `/privacy` and `/terms` are linked from onboarding, the paywall and Progress. Set `SUPPORT_EMAIL` so the pages show a contact address. They are a solid starting point, not legal advice: have them reviewed, and add your registered business name if you have one.
 
+## Admin dashboard (`/admin`)
+
+Open **https://eboclean-two.vercel.app/admin** and sign in with an email listed in `ADMIN_EMAILS`. Nobody else can load any of its data.
+
+- **Overview**: things to look out for (failed payments, unrefunded card checks, AI errors, missing setup), money (MRR, revenue, fees, refunds, profit after AI costs, charges coming in the next 7 days), growth (sign-ups, active users), subscription statuses, the trial-to-paid funnel, and AI usage and cost per day.
+- **Users**: every account with its status, activity, AI cost and payments; search, filter, CSV export. Open a user to see their timeline and to give free days, reset their daily scan limit, cancel their subscription, email them or delete the account.
+- **Payments**: money in and out from Paystack, failed attempts, trial card checks, one-click refunds.
+- **Emails**: email a group (everyone, on trial, paying, payment failed, trial ended…) through Resend. Announcements include an unsubscribe link and skip people who unsubscribed. A daily job emails people 1–2 days before their trial converts.
+- **Activity**: a live log of sign-ups, sign-ins, trials, scans, blocked scans, Paystack events, emails and admin actions.
+- **Setup**: what's connected and what's missing.
+
+The activity log lives in the `events` table: re-run `supabase/schema.sql` after updating. AI costs are estimated from the tokens each Claude call used.
+
 ## Live deployment (Vercel)
 
 Live at **https://eboclean-two.vercel.app** (deploys automatically when you push to `main` on GitHub).
 
 - Keys are **not** in the repository. Add them in Vercel → Project → Settings → Environment Variables (Production), then redeploy:
-  `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SECRET`, `SUPPORT_EMAIL`, and `APP_URL=https://eboclean-two.vercel.app`.
+  `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SECRET`, `SUPPORT_EMAIL`, `ADMIN_EMAILS`, `RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET`, and `APP_URL=https://eboclean-two.vercel.app`.
 - In Supabase → Authentication → URL Configuration, set **Site URL** to `https://eboclean-two.vercel.app`.
 
 ## Not built yet (next steps)

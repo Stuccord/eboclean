@@ -1,5 +1,15 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { AuthCodeError, SendLimitError, type AccountBackend, type Profile, type ProfilePatch, type UserData } from "./types";
+import {
+  AuthCodeError,
+  SendLimitError,
+  type AccountBackend,
+  type AdminProfile,
+  type AppEvent,
+  type EventQuery,
+  type Profile,
+  type ProfilePatch,
+  type UserData,
+} from "./types";
 
 // Production backend: Supabase Auth (email codes), Postgres tables and a private Storage bucket.
 // Everything runs on the server. The service role key never reaches the browser.
@@ -17,6 +27,34 @@ interface ProfileRow {
   usage_rooms: number;
   ai_day?: string | null;
   ai_count?: number | null;
+  created_at?: string | null;
+  email_opt_out?: boolean | null;
+}
+
+interface EventRow {
+  id: string;
+  created_at: string;
+  type: string;
+  user_id: string | null;
+  email: string | null;
+  amount: number | null;
+  currency: string | null;
+  meta: Record<string, unknown> | null;
+}
+
+const PAGE = 1000;
+
+function toEvent(r: EventRow): AppEvent {
+  return {
+    id: r.id,
+    at: Date.parse(r.created_at),
+    type: r.type,
+    userId: r.user_id,
+    email: r.email,
+    amount: r.amount,
+    currency: r.currency,
+    meta: r.meta,
+  };
 }
 
 function toProfile(r: ProfileRow): Profile {
@@ -31,6 +69,8 @@ function toProfile(r: ProfileRow): Profile {
     usageRooms: r.usage_rooms,
     aiDay: r.ai_day ?? null,
     aiCount: r.ai_count ?? 0,
+    createdAt: r.created_at ? Date.parse(r.created_at) : null,
+    emailOptOut: Boolean(r.email_opt_out),
   };
 }
 
@@ -44,6 +84,7 @@ function toRow(patch: ProfilePatch): Partial<ProfileRow> {
   if (patch.usageRooms !== undefined) row.usage_rooms = patch.usageRooms;
   if (patch.aiDay !== undefined) row.ai_day = patch.aiDay;
   if (patch.aiCount !== undefined) row.ai_count = patch.aiCount;
+  if (patch.emailOptOut !== undefined) row.email_opt_out = patch.emailOptOut;
   return row;
 }
 
@@ -93,6 +134,7 @@ export class SupabaseBackend implements AccountBackend {
       .select("*")
       .single<ProfileRow>();
     if (insErr) throw new Error(`Create profile failed: ${insErr.message}`);
+    await this.logEvent({ at: Date.now(), type: "user.signup", userId, email, amount: null, currency: null, meta: null }).catch(() => undefined);
     return toProfile(created);
   }
 
@@ -162,5 +204,73 @@ export class SupabaseBackend implements AccountBackend {
     // Deleting the auth user cascades to profiles and user_data.
     const { error } = await this.admin.auth.admin.deleteUser(userId);
     if (error) throw new Error(`Delete user failed: ${error.message}`);
+    // Keep anonymous activity counts, but forget who it was.
+    await this.admin.from("events").update({ email: null }).eq("user_id", userId);
+  }
+
+  async logEvent(e: Omit<AppEvent, "id">) {
+    const { error } = await this.admin.from("events").insert({
+      created_at: new Date(e.at).toISOString(),
+      type: e.type,
+      user_id: e.userId,
+      email: e.email,
+      amount: e.amount,
+      currency: e.currency,
+      meta: e.meta,
+    });
+    if (error) throw new Error(`Log event failed: ${error.message}`);
+  }
+
+  async listEvents(q: EventQuery) {
+    const limit = Math.min(q.limit ?? 500, 50_000);
+    const out: AppEvent[] = [];
+    for (let from = 0; from < limit; from += PAGE) {
+      let query = this.admin.from("events").select("*").order("created_at", { ascending: false });
+      if (q.since) query = query.gte("created_at", new Date(q.since).toISOString());
+      if (q.userId) query = query.eq("user_id", q.userId);
+      if (q.types?.length) query = query.in("type", q.types);
+      if (q.typePrefix) query = query.like("type", `${q.typePrefix}%`);
+      const to = Math.min(from + PAGE, limit) - 1;
+      const { data, error } = await query.range(from, to).returns<EventRow[]>();
+      if (error) throw new Error(`List events failed: ${error.message}`);
+      out.push(...(data ?? []).map(toEvent));
+      if (!data || data.length < to - from + 1) break;
+    }
+    return out;
+  }
+
+  async listProfiles() {
+    const rows: ProfileRow[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await this.admin
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + PAGE - 1)
+        .returns<ProfileRow[]>();
+      if (error) throw new Error(`List profiles failed: ${error.message}`);
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE) break;
+    }
+    const active = new Map<string, number>();
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await this.admin
+        .from("user_data")
+        .select("user_id, updated_at")
+        .range(from, from + PAGE - 1)
+        .returns<{ user_id: string; updated_at: string }[]>();
+      if (error) throw new Error(`List activity failed: ${error.message}`);
+      for (const d of data ?? []) active.set(d.user_id, Date.parse(d.updated_at));
+      if (!data || data.length < PAGE) break;
+    }
+    return rows.map((r): AdminProfile => ({ ...toProfile(r), lastActiveAt: active.get(r.id) ?? null }));
+  }
+
+  async findProfile(userId: string) {
+    const { data, error } = await this.admin.from("profiles").select("*").eq("id", userId).maybeSingle<ProfileRow>();
+    if (error) throw new Error(`Load profile failed: ${error.message}`);
+    if (!data) return null;
+    const { data: ud } = await this.admin.from("user_data").select("updated_at").eq("user_id", userId).maybeSingle<{ updated_at: string }>();
+    return { ...toProfile(data), lastActiveAt: ud ? Date.parse(ud.updated_at) : null };
   }
 }

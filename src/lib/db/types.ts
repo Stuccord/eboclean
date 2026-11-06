@@ -12,6 +12,36 @@ export interface Profile {
   /** Daily AI-use counter (UTC day "YYYY-MM-DD"), caps cost even for Pro. */
   aiDay: string | null;
   aiCount: number;
+  /** When the account was created (ms since epoch), if known. */
+  createdAt?: number | null;
+  /** Opted out of announcement emails (billing notices still go out). */
+  emailOptOut?: boolean;
+}
+
+/** One thing that happened in the app, for the admin dashboard. Amounts are in the smallest currency unit. */
+export interface AppEvent {
+  id?: string;
+  at: number; // ms since epoch
+  type: string;
+  userId: string | null;
+  email: string | null;
+  amount: number | null;
+  currency: string | null;
+  meta: Record<string, unknown> | null;
+}
+
+export interface EventQuery {
+  since?: number;
+  userId?: string;
+  types?: string[];
+  /** Matches types starting with this, e.g. "ai." */
+  typePrefix?: string;
+  limit?: number;
+}
+
+/** A profile plus when the user last synced data, for the admin user list. */
+export interface AdminProfile extends Profile {
+  lastActiveAt: number | null;
 }
 
 export type ProfilePatch = Partial<Omit<Profile, "id" | "email">>;
@@ -41,6 +71,13 @@ export interface AccountBackend {
   claimTrial(userId: string): Promise<boolean>;
   /** Permanently deletes the user, their profile, synced data and photos. */
   deleteAccount(userId: string): Promise<void>;
+
+  // ---- admin dashboard ----
+  logEvent(event: Omit<AppEvent, "id">): Promise<void>;
+  /** Newest first. */
+  listEvents(query: EventQuery): Promise<AppEvent[]>;
+  listProfiles(): Promise<AdminProfile[]>;
+  findProfile(userId: string): Promise<AdminProfile | null>;
 }
 
 export class AuthCodeError extends Error {}

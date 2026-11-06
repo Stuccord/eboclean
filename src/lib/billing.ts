@@ -3,6 +3,8 @@ import { accounts } from "./db";
 import { clientIp, rateLimit } from "./rateLimit";
 import { getSession } from "./session";
 import { cookieOpts, sign, verify } from "./signing";
+import { track } from "./events";
+import type { AiUsage } from "./aiCost";
 
 // ---------------- plans & limits ----------------
 /** Most AI calls (scans, after-photos, room setups) one account can make per UTC day. Protects your Claude bill. */
@@ -228,6 +230,14 @@ export function forgetStatus(customerId: number | null | undefined) {
 
 export type DenyReason = "login" | "paywall" | "daily" | "busy";
 
+/** What an AI call did, for the activity log and cost tracking. */
+export interface AiCallInfo {
+  kind: "scan" | "setup";
+  mode?: string;
+  demo?: boolean;
+  usage?: AiUsage;
+}
+
 function utcDay(now = Date.now()) {
   return new Date(now).toISOString().slice(0, 10);
 }
@@ -237,12 +247,18 @@ function utcDay(now = Date.now()) {
  * subscription. On top of that there is a per-account daily cap and a per-IP burst limit.
  */
 export async function checkAllowance(req: NextRequest) {
-  const deny = (reason: DenyReason) => ({ allowed: false as const, reason, async record() {} });
+  const noop = async (info?: AiCallInfo) => void info;
+  const deny = (reason: DenyReason) => ({ allowed: false as const, reason, record: noop });
 
-  if (!rateLimit(`ai:${clientIp(req)}`, IP_LIMIT.max, IP_LIMIT.windowMs)) return deny("busy");
+  if (!rateLimit(`ai:${clientIp(req)}`, IP_LIMIT.max, IP_LIMIT.windowMs)) {
+    const s = getSession(req);
+    await track("ai.blocked", { userId: s?.uid, email: s?.email, meta: { reason: "busy", ip: clientIp(req) } });
+    return deny("busy");
+  }
 
   const state = await loadBilling(req);
   if (!state.userId) return deny("login");
+  const who = { userId: state.userId, email: state.email };
 
   let pro = trialActive(state);
   if (!pro) {
@@ -254,23 +270,30 @@ export async function checkAllowance(req: NextRequest) {
       pro = Boolean(state.customerId);
     }
   }
-  if (!pro) return deny("paywall");
+  if (!pro) {
+    await track("ai.blocked", { ...who, meta: { reason: "paywall" } });
+    return deny("paywall");
+  }
 
   const today = utcDay();
   const usedToday = state.aiDay === today ? state.aiCount : 0;
-  if (usedToday >= DAILY_AI_LIMIT) return deny("daily");
+  if (usedToday >= DAILY_AI_LIMIT) {
+    await track("ai.blocked", { ...who, meta: { reason: "daily" } });
+    return deny("daily");
+  }
 
   const userId = state.userId;
   return {
     allowed: true as const,
     reason: null,
-    async record() {
+    async record(info?: AiCallInfo) {
       try {
         await accounts().updateProfile(userId, { aiDay: today, aiCount: usedToday + 1 });
       } catch (err) {
         // Missing ai_day/ai_count columns (run supabase/schema.sql) shouldn't break scanning.
         console.error("Daily AI counter update failed", err);
       }
+      if (info) await track(`ai.${info.kind}`, { ...who, meta: { mode: info.mode ?? null, demo: Boolean(info.demo), ...(info.usage ?? {}) } });
     },
   };
 }
@@ -334,6 +357,7 @@ export async function activateCardTrial(opts: {
       trialEndsAt: endsAt,
     });
     forgetStatus(opts.customerId);
+    await track("trial.started", { userId: opts.userId, email: opts.email, meta: { plan: opts.plan, endsAt, reference: opts.reference } });
   } catch (err) {
     // Give the trial back so the user can try again.
     await db.updateProfile(opts.userId, { trialUsed: false, trialEndsAt: null }).catch(() => undefined);
@@ -344,6 +368,13 @@ export async function activateCardTrial(opts: {
     await paystack("/refund", { method: "POST", body: { transaction: opts.reference } });
   } catch (err) {
     console.error("Refunding the trial card check failed (refund it in the Paystack dashboard)", opts.reference, err);
+    await track("refund.failed", {
+      userId: opts.userId,
+      email: opts.email,
+      amount: TRIAL_CARD_CHECK,
+      currency: CURRENCY,
+      meta: { reference: opts.reference, error: err instanceof Error ? err.message : String(err) },
+    });
   }
   return "started";
 }

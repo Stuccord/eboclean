@@ -12,6 +12,7 @@ import {
   saveBilling,
   type PlanId,
 } from "@/lib/billing";
+import { track } from "@/lib/events";
 
 interface VerifiedTransaction {
   status: string;
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
       const plan: PlanId = meta.plan && meta.plan in PLANS ? (meta.plan as PlanId) : "yearly";
       if (!tx.authorization?.authorization_code || !tx.authorization.reusable) {
         await paystack("/refund", { method: "POST", body: { transaction: tx.reference } }).catch(() => undefined);
+        await track("trial.card_not_reusable", { userId: state.userId, email: state.email, meta: { reference: tx.reference } });
         return go("card-not-reusable");
       }
       await activateCardTrial({

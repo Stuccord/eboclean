@@ -3,6 +3,7 @@ import { z } from "zod";
 import { accounts, AuthCodeError } from "@/lib/db";
 import { mergeAnonymousIntoProfile } from "@/lib/billing";
 import { normalizeEmail, setSession } from "@/lib/session";
+import { track } from "@/lib/events";
 
 const BodySchema = z.object({
   email: z.string().trim().email().max(254),
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
     const backend = accounts();
     const user = await backend.verifyCode(normalizeEmail(body.email), body.code);
     await backend.getProfile(user.id, user.email); // creates it on first sign-in
+    await track("user.sign_in", { userId: user.id, email: user.email });
     const res = NextResponse.json({ user: { id: user.id, email: user.email } });
     setSession(res, user);
     // Carry over anything done before signing in on this device (free usage, trial, demo subscription).

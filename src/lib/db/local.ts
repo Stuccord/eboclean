@@ -1,7 +1,7 @@
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { AuthCodeError, type AccountBackend, type Profile, type ProfilePatch, type UserData } from "./types";
+import { AuthCodeError, type AccountBackend, type AdminProfile, type AppEvent, type EventQuery, type Profile, type ProfilePatch, type UserData } from "./types";
 
 // Demo backend: stores accounts in a JSON file and photos in a folder on this computer,
 // and shows sign-in codes on screen instead of emailing them. For local testing only;
@@ -17,7 +17,10 @@ interface DevDb {
   profiles: Record<string, Profile>;
   data: Record<string, UserData>;
   codes: Record<string, { hash: string; expires: number; tries: number }>;
+  events?: AppEvent[];
 }
+
+const MAX_EVENTS = 20_000;
 
 function hashCode(email: string, code: string) {
   return createHash("sha256").update(`${email}:${code}`).digest("hex");
@@ -79,6 +82,9 @@ export class LocalBackend implements AccountBackend {
 
   getProfile(userId: string, email: string) {
     return withDb((db) => {
+      if (!db.profiles[userId]) {
+        (db.events ??= []).push({ id: randomUUID(), at: Date.now(), type: "user.signup", userId, email, amount: null, currency: null, meta: null });
+      }
       db.profiles[userId] ??= {
         id: userId,
         email,
@@ -90,6 +96,7 @@ export class LocalBackend implements AccountBackend {
         usageRooms: 0,
         aiDay: null,
         aiCount: 0,
+        createdAt: Date.now(),
       };
       const p = db.profiles[userId];
       return { ...p, aiDay: p.aiDay ?? null, aiCount: p.aiCount ?? 0 };
@@ -153,7 +160,46 @@ export class LocalBackend implements AccountBackend {
       delete db.profiles[userId];
       delete db.data[userId];
       if (email) delete db.users[email];
+      for (const e of db.events ?? []) if (e.userId === userId) e.email = null;
     }, true);
     await rm(path.join(PHOTO_DIR, safeId(userId)), { recursive: true, force: true });
+  }
+
+  logEvent(e: Omit<AppEvent, "id">) {
+    return withDb((db) => {
+      const events = (db.events ??= []);
+      events.push({ ...e, id: randomUUID() });
+      if (events.length > MAX_EVENTS) events.splice(0, events.length - MAX_EVENTS);
+    }, true);
+  }
+
+  listEvents(q: EventQuery) {
+    return withDb((db) =>
+      (db.events ?? [])
+        .filter(
+          (e) =>
+            (!q.since || e.at >= q.since) &&
+            (!q.userId || e.userId === q.userId) &&
+            (!q.types?.length || q.types.includes(e.type)) &&
+            (!q.typePrefix || e.type.startsWith(q.typePrefix)),
+        )
+        .sort((a, b) => b.at - a.at)
+        .slice(0, q.limit ?? 500),
+    );
+  }
+
+  listProfiles() {
+    return withDb((db) =>
+      Object.values(db.profiles)
+        .map((p): AdminProfile => ({ ...p, aiDay: p.aiDay ?? null, aiCount: p.aiCount ?? 0, lastActiveAt: db.data[p.id]?.updatedAt || null }))
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+    );
+  }
+
+  findProfile(userId: string) {
+    return withDb((db) => {
+      const p = db.profiles[userId];
+      return p ? { ...p, aiDay: p.aiDay ?? null, aiCount: p.aiCount ?? 0, lastActiveAt: db.data[userId]?.updatedAt || null } : null;
+    });
   }
 }

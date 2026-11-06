@@ -4,6 +4,7 @@ import { scanRoom, type ScanResult } from "@/lib/scan";
 import { demoResult } from "@/lib/demo";
 import { errorResponse, isDemoMode, MAX_IMAGE_CHARS, parseDataUrl } from "@/lib/apiHelpers";
 import { checkAllowance, denyResponse } from "@/lib/billing";
+import type { AiUsage } from "@/lib/aiCost";
 
 export const maxDuration = 60;
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     await new Promise((r) => setTimeout(r, 1800));
     const result: ScanResult = demoResult(body.mode, body.previous?.mess_score);
     const res = NextResponse.json({ result, demo: true });
-    await allowance.record();
+    await allowance.record({ kind: "scan", mode: body.mode, demo: true });
     return res;
   }
 
@@ -43,8 +44,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Please upload a JPEG, PNG or WebP photo." }, { status: 400 });
   }
 
+  let usage: AiUsage | undefined;
   try {
     const result = await scanRoom({
+      onUsage: (u) => (usage = u),
       imageBase64: img.base64,
       mediaType: img.mediaType,
       mode: body.mode,
@@ -53,9 +56,9 @@ export async function POST(request: NextRequest) {
       previous: body.previous,
     });
     const res = NextResponse.json({ result, demo: false });
-    await allowance.record();
+    await allowance.record({ kind: "scan", mode: body.mode, usage });
     return res;
   } catch (err) {
-    return errorResponse(err);
+    return errorResponse(err, { kind: "scan", usage });
   }
 }

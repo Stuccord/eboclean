@@ -14,6 +14,7 @@ import {
   TRIAL_CARD_CHECK,
   trialEnd,
 } from "@/lib/billing";
+import { track } from "@/lib/events";
 
 const BodySchema = z.object({ plan: z.enum(["yearly", "monthly"]), trial: z.boolean().optional() });
 
@@ -41,8 +42,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Your free trial has already been used. Choose a plan to continue." }, { status: 409 });
   }
 
+  await track(wantsTrial ? "checkout.trial" : "checkout.subscribe", { userId: state.userId, email: state.email, meta: { plan } });
+
   // Demo billing: no Paystack key yet, so simulate it.
   if (isDemoBilling()) {
+    if (wantsTrial) await track("trial.started", { userId: state.userId, email: state.email, meta: { plan, demo: true } });
     const res = NextResponse.json({ url: wantsTrial ? "/?checkout=trial-started" : "/?checkout=success", demo: true });
     await saveBilling(
       res,

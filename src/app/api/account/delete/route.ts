@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { accounts } from "@/lib/db";
 import { getSession, clearSession } from "@/lib/session";
+import { track } from "@/lib/events";
 import { forgetStatus, isDemoBilling, paystack, type PaystackSubscription } from "@/lib/billing";
 
 /**
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Something went wrong deleting your account. Please try again." }, { status: 500 });
   }
 
+  await track("user.deleted", { userId: session.uid });
   const res = NextResponse.json({ ok: true });
   clearSession(res);
   res.cookies.delete("cs_billing");

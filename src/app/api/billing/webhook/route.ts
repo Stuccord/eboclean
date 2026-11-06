@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { accounts } from "@/lib/db";
 import { activateCardTrial, CURRENCY, forgetStatus, PLANS, type PlanId } from "@/lib/billing";
+import { track } from "@/lib/events";
+import { forgetPaystackCache } from "@/lib/admin";
 
 // Paystack webhook. Set this URL in Paystack -> Settings -> API Keys & Webhooks:
 //   https://<your-domain>/api/billing/webhook
@@ -13,6 +15,9 @@ interface PaystackEvent {
   data: {
     status?: string;
     currency?: string;
+    amount?: number;
+    subscription_code?: string;
+    plan?: { name?: string; plan_code?: string } | null;
     reference?: string;
     authorization?: { authorization_code?: string; reusable?: boolean };
     metadata?: { app?: string; user_id?: string; kind?: string; plan?: string } | string | null;
@@ -46,6 +51,24 @@ export async function POST(req: NextRequest) {
 
   const customerId = evt.data?.customer?.id;
   if (customerId) forgetStatus(customerId);
+  forgetPaystackCache();
+
+  const evtMeta = typeof evt.data?.metadata === "object" && evt.data.metadata ? evt.data.metadata : {};
+  const linked = customerId ? await accounts().findByPaystackCustomer(customerId).catch(() => null) : null;
+  await track(`paystack.${evt.event}`, {
+    userId: linked?.id ?? (evtMeta.user_id && /^[A-Za-z0-9-]{1,64}$/.test(evtMeta.user_id) ? evtMeta.user_id : null),
+    email: evt.data?.customer?.email ?? null,
+    amount: typeof evt.data?.amount === "number" ? evt.data.amount : null,
+    currency: evt.data?.currency ?? null,
+    meta: {
+      status: evt.data?.status ?? null,
+      reference: evt.data?.reference ?? null,
+      kind: evtMeta.kind ?? null,
+      plan: evt.data?.plan?.name ?? evtMeta.plan ?? null,
+      subscription: evt.data?.subscription_code ?? null,
+      customerId: customerId ?? null,
+    },
+  });
 
   try {
     if (evt.event === "charge.success" && customerId && evt.data.status === "success" && evt.data.currency === CURRENCY) {

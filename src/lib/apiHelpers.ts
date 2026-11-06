@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { ScanError } from "./scan";
+import { track } from "./events";
+import type { AiUsage } from "./aiCost";
 
 // ~6 MB of base64 is plenty for a compressed phone photo.
 export const MAX_IMAGE_CHARS = 8_000_000;
@@ -20,7 +22,16 @@ export function parseDataUrl(image: string): { mediaType: MediaType; base64: str
   return { mediaType: match[1] as MediaType, base64: match[2] };
 }
 
-export function errorResponse(err: unknown) {
+export async function errorResponse(err: unknown, ctx?: { kind: string; usage?: AiUsage }) {
+  // Anything that isn't a normal "bad photo" answer is worth seeing on the dashboard.
+  await track(err instanceof ScanError ? "ai.rejected" : "ai.error", {
+    meta: {
+      kind: ctx?.kind ?? null,
+      error: err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300),
+      status: err instanceof Anthropic.APIError ? err.status : null,
+      ...(ctx?.usage ?? {}),
+    },
+  });
   if (err instanceof ScanError) {
     return NextResponse.json({ error: err.message }, { status: 422 });
   }

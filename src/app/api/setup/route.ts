@@ -4,6 +4,7 @@ import { setupRoom } from "@/lib/scan";
 import { demoSetup } from "@/lib/demo";
 import { errorResponse, isDemoMode, MAX_IMAGE_CHARS, parseDataUrl } from "@/lib/apiHelpers";
 import { checkAllowance, denyResponse } from "@/lib/billing";
+import type { AiUsage } from "@/lib/aiCost";
 
 export const maxDuration = 60;
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 1500));
     const res = NextResponse.json({ result: demoSetup(body.roomIndex ?? 0), demo: true });
-    await allowance.record();
+    await allowance.record({ kind: "setup", demo: true });
     return res;
   }
 
@@ -40,12 +41,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Please upload a JPEG, PNG or WebP photo." }, { status: 400 });
   }
 
+  let usage: AiUsage | undefined;
   try {
-    const result = await setupRoom({ imageBase64: img.base64, mediaType: img.mediaType });
+    const result = await setupRoom({ imageBase64: img.base64, mediaType: img.mediaType, onUsage: (u) => (usage = u) });
     const res = NextResponse.json({ result, demo: false });
-    await allowance.record();
+    await allowance.record({ kind: "setup", usage });
     return res;
   } catch (err) {
-    return errorResponse(err);
+    return errorResponse(err, { kind: "setup", usage });
   }
 }

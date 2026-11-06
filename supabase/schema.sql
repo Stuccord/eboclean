@@ -21,6 +21,26 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists ai_day text;
 alter table public.profiles add column if not exists ai_count integer not null default 0;
 create index if not exists profiles_paystack_customer_idx on public.profiles (paystack_customer_id);
+-- Added later: email opt-out for announcement emails.
+alter table public.profiles add column if not exists email_opt_out boolean not null default false;
+
+-- Everything that happens in the app (sign-ups, trials, scans, payments, emails), for the admin dashboard.
+-- Not linked to auth.users on purpose: when an account is deleted its events stay as anonymous counts
+-- (the app clears the email on them).
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  type text not null,
+  user_id uuid,
+  email text,
+  amount bigint,
+  currency text,
+  meta jsonb
+);
+create index if not exists events_created_idx on public.events (created_at desc);
+create index if not exists events_type_created_idx on public.events (type, created_at desc);
+create index if not exists events_user_idx on public.events (user_id, created_at desc);
+alter table public.events enable row level security;
 
 -- One row per user: their home (rooms, tasks, history) and progress, synced from the app.
 create table if not exists public.user_data (
