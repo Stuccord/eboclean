@@ -307,7 +307,7 @@ export function Onboarding({
 function Question({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col">
-      <h2 className="text-[32px] font-bold leading-tight tracking-tight">{title}</h2>
+      <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
       <p className="mt-2 text-neutral-500">{sub}</p>
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
     </div>

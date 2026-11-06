@@ -5,11 +5,32 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Type scale matching Cal AI, which uses Apple's standard iOS text sizes:
+   caption 12, subheadline 15, body 17, title3 20, title2 22, title1 28, large title 34. */
+@theme {
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 15px;
+  --text-sm--line-height: 20px;
+  --text-base: 17px;
+  --text-base--line-height: 22px;
+  --text-lg: 20px;
+  --text-lg--line-height: 25px;
+  --text-xl: 22px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 28px;
+  --text-2xl--line-height: 34px;
+  --text-3xl: 34px;
+  --text-3xl--line-height: 41px;
+}
+
 body {
   background: #f7f7f8;
   color: #0a0a0a;
   font-family: var(--font-inter), system-ui, sans-serif;
   font-feature-settings: "cv11", "ss01";
+  font-size: 17px;
+  line-height: 22px;
   letter-spacing: -0.011em;
 }
 
