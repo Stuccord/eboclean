@@ -1,0 +1,6 @@
+# Never upload secrets or local data. Keys are set as Vercel environment variables instead.
+.env*
+!.env.example
+.data
+.next
+node_modules

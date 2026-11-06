@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Eboclean ✨
 
-## Getting Started
+Snap your messy room → AI gives you a **Mess Score** and a 10-minute cleaning mission → snap the "after" photo → share your glow-up.
 
-First, run the development server:
+## Run it locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 (on your phone, use your computer's local IP, e.g. `http://192.168.x.x:3000`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**No API key yet?** The app runs in **demo mode** with a sample result, so you can try the full flow and film UI clips.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Connect the real AI
 
-## Learn More
+1. Create an API key at https://console.anthropic.com (Settings → API Keys) and add billing credit.
+2. Copy `.env.example` to `.env.local` and paste your key:
+   ```
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
+3. Restart `npm run dev`.
 
-To learn more about Next.js, take a look at the following resources:
+The scan uses Claude Opus 5.5 (vision + structured JSON output) with low effort for speed. A server-side fallback is enabled, so if a photo is declined for a policy reason the API retries on a fallback model.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Features
+- **Home setup from photos:** snap each room once; AI builds a recurring routine (tasks + how often).
+- **Today's reset:** each day the app picks the most-needed tasks across your home that fit your time and energy.
+- **Clean with Ebo:** a "just 2 minutes" start, a companion that talks you through each step (browser voice), cheers you on, and checks in at 2 minutes.
+- **Quick scan:** snap any mess → Mess Score → mission → after photo → share card.
+- **Rooms:** freshness meter per room that slowly drops as tasks come due.
+- **Progress:** streaks, points, and a before/after photo timeline.
 
-## Deploy on Vercel
+| File | What it does |
+|---|---|
+| `src/app/page.tsx` | Navigation (Today / Rooms / Progress tabs), welcome screen, daily reset flow |
+| `src/components/TodayView.tsx` | Today's plan, time/energy picker |
+| `src/components/SetupFlow.tsx` | Add a room from a photo |
+| `src/components/ScanFlow.tsx` | Quick scan → mission → after photo → glow-up + share |
+| `src/components/MissionRunner.tsx` | Step-by-step mission with timer and the Sweep companion |
+| `src/components/RoomsView.tsx` | Room list, room detail, timeline entries |
+| `src/components/ProgressView.tsx` | Stats and glow-up timeline |
+| `src/components/ui.tsx` | Shared UI pieces and data hooks |
+| `src/app/api/scan/route.ts`, `src/app/api/setup/route.ts` | API endpoints (AI or demo mode) |
+| `src/lib/scan.ts` | AI prompts, Mess Score rubric, JSON schemas |
+| `src/lib/store.ts` | Rooms, tasks, history, photos (IndexedDB on the device), daily plan logic |
+| `src/lib/progress.ts` | Points and streaks |
+| `src/lib/shareCard.ts` | Draws the 1080×1920 before/after share card |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Payments (Paystack, in US dollars)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Free plan:** 3 AI scans and 2 rooms. **Pro:** unlimited, **$4.99/month** or **$29.99/year** (USD).
+**Trial:** 7 days of Pro, no card needed (one per browser). After that, users subscribe through Paystack.
+
+Without Paystack keys the app uses **demo payments** (trial, subscribe and cancel all work; nothing is charged).
+
+To take real payments:
+1. Open a Paystack account and complete business verification.
+2. **Ask Paystack to enable USD payments** on your account (Settings, or contact Paystack support). USD availability depends on your business country and needs approval.
+3. In **Test mode**: Products → Plans → create "Eboclean Pro Monthly" ($4.99, monthly, currency USD) and "Eboclean Pro Yearly" ($29.99, annually, currency USD). Copy each plan code (`PLN_...`).
+4. Put `PAYSTACK_SECRET_KEY` (test key first), `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY` and `APP_SECRET` in `.env.local` (see `.env.example`).
+5. Test with Paystack's test cards, then switch to your live key and live plan codes.
+
+How it works: the app starts a Paystack checkout for the chosen plan; Paystack charges the card in USD and creates the subscription. When the user returns, the server verifies the transaction with Paystack and stores the customer in a signed cookie. Pro status is checked live with Paystack (cached 1 minute): a subscription counts while it is `active` or `non-renewing` (cancelled but paid until the period ends). "Manage or cancel" opens Paystack's hosted subscription page.
+
+Starting a trial or subscribing requires an account, so they work on every device.
+
+## Accounts (email code sign-in + cloud sync)
+
+Sign-in is passwordless: enter your email, get a 6-digit code. Rooms, tasks, history, points/streak and photos sync to the account, so users can sign in on a new phone and pick up where they left off. The free-usage counters, trial and Paystack subscription are stored on the account, so Pro works on every device and the trial can't be repeated by clearing cookies. Signing out removes the data from that device (it stays in the account).
+
+Without Supabase keys the app uses **demo accounts**: stored in `.data/` on this computer, and the sign-in code is shown on screen instead of emailed. Demo accounts are refused in production unless `ALLOW_DEMO_ACCOUNTS=1`.
+
+To use real accounts with Supabase (free tier is fine):
+1. Create a project at supabase.com.
+2. SQL Editor → run `supabase/schema.sql`.
+3. Storage → New bucket → name it `photos`, keep it **private**.
+4. Authentication → Email templates → "Magic Link": make the email show the code with `{{ .Token }}` (for example: "Your Eboclean code is {{ .Token }}"). By default Supabase sends a link, but the app signs in with the 6-digit code.
+5. Authentication → Providers → Email: enabled. For real users, set up custom SMTP (Supabase's built-in email is rate-limited and meant for testing).
+6. Project Settings → API: copy the URL, anon key and service role key into `.env.local` (see `.env.example`). Keep the service role key secret.
+
+## Live deployment (Vercel)
+
+Live at **https://eboclean.vercel.app** (Vercel project `eboclean`).
+
+- Redeploy after changes: `npx vercel@latest deploy --prod`
+- `vercel.json` tells Vercel this is a Next.js app; `.vercelignore` keeps `.env*` and `.data/` from being uploaded.
+- Keys are **not** uploaded from `.env.local`. Add them in Vercel → Project `eboclean` → Settings → Environment Variables (Production), then redeploy:
+  `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SECRET`, and `APP_URL=https://eboclean.vercel.app`.
+- In Supabase → Authentication → URL Configuration, set **Site URL** to `https://eboclean.vercel.app`.
+
+## Not built yet (next steps)
+
+- Delete-my-account option (account deletion is important before a public launch)
+- Paystack webhooks (status is checked live today; webhooks would add instant updates and payment-failure emails)
+- Real reminder notifications (needs a native app or web push)
+- Household sharing
+- Deploy to the internet (e.g. Vercel)

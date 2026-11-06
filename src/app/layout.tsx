@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clean Sweep: snap your mess, get a 10-minute plan",
+  title: "Eboclean: cleaning help for ADHD & overwhelmed brains",
   description:
-    "Overwhelmed by mess? Snap a photo and AI turns it into tiny, doable cleaning steps. Watch your Mess Score drop to zero.",
+    "Cleaning help for brains that hate starting. Snap your rooms, get tiny 2-minute steps, a friendly body-double voice, and no-guilt streaks.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: "#f4f5fb",
   width: "device-width",
   initialScale: 1,
 };

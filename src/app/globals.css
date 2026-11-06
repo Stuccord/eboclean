@@ -6,8 +6,8 @@
 }
 
 body {
-  background: #020617;
-  color: #ffffff;
+  background: #f4f5fb;
+  color: #1e1b4b;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
@@ -27,7 +27,7 @@ body {
   animation: scan 2s ease-in-out infinite;
 }
 
-/* Confetti burst when a step is done */
+/* Confetti burst when a task is done */
 @keyframes confetti-burst {
   0% {
     transform: translate(0, 0) rotate(0deg);
@@ -42,9 +42,38 @@ body {
   animation: confetti-burst 0.9s ease-out forwards;
 }
 
+/* Check-off pop */
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.pop {
+  animation: pop 0.35s ease-out;
+}
+
+/* Task row slides away after completion */
+@keyframes fade-out-row {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+.row-done {
+  animation: fade-out-row 0.45s ease-in 0.25s forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scan-line,
-  .confetti {
+  .confetti,
+  .pop,
+  .row-done {
     animation: none;
   }
 }
