@@ -9,10 +9,10 @@
 import { mkdir } from "node:fs/promises";
 import sharp from "sharp";
 
-const BG = `<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#4f46e5"/></linearGradient>`;
+const BG = `<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b2b2f"/><stop offset="1" stop-color="#000000"/></linearGradient>`;
 const GLYPH = `
   <path d="M18 35 H44 M44 35 A13.5 13.5 0 1 0 40.5 45" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M49 8 C50 13.5 51 14.5 56.5 15.5 C51 16.5 50 17.5 49 23 C48 17.5 47 16.5 41.5 15.5 C47 14.5 48 13.5 49 8 Z" fill="#6ee7b7"/>`;
+  <path d="M49 8 C50 13.5 51 14.5 56.5 15.5 C51 16.5 50 17.5 49 23 C48 17.5 47 16.5 41.5 15.5 C47 14.5 48 13.5 49 8 Z" fill="#ffffff"/>`;
 
 // Rounded app tile (for browsers / PWA "any" icons).
 const rounded = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs>${BG}</defs><rect width="64" height="64" rx="18" fill="url(#g)"/>${GLYPH}</svg>`;
@@ -23,7 +23,7 @@ const fullBleed = (scale) =>
 
 async function png(svg, size, file, flatten = false) {
   let img = sharp(Buffer.from(svg), { density: 600 }).resize(size, size);
-  if (flatten) img = img.flatten({ background: "#6d5bf0" });
+  if (flatten) img = img.flatten({ background: "#111111" });
   await img.png().toFile(file);
   console.log("wrote", file);
 }
