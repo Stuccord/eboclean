@@ -26,16 +26,16 @@ export const CATEGORY_EMOJI: Record<string, string> = {
 
 // Soft pastel tile behind each category icon.
 export const CATEGORY_TINT: Record<string, string> = {
-  trash: "bg-slate-100",
-  dishes: "bg-sky-100",
-  laundry: "bg-violet-100",
-  put_away: "bg-amber-100",
-  surfaces: "bg-teal-100",
-  floor: "bg-orange-100",
-  other: "bg-pink-100",
+  trash: "bg-neutral-100",
+  dishes: "bg-neutral-100",
+  laundry: "bg-neutral-100",
+  put_away: "bg-neutral-100",
+  surfaces: "bg-neutral-100",
+  floor: "bg-neutral-100",
+  other: "bg-neutral-100",
 };
 
-export const ROOM_TINTS = ["bg-violet-100", "bg-sky-100", "bg-teal-100", "bg-amber-100", "bg-pink-100", "bg-lime-100"];
+export const ROOM_TINTS = ["bg-neutral-100"];
 
 export const LEVEL_STYLE: Record<NeedLevel, { label: string; text: string; bar: string; segments: number }> = {
   fresh: { label: "Clean", text: "text-emerald-600", bar: "bg-emerald-400", segments: 1 },
@@ -92,7 +92,7 @@ export function usePhoto(id: string | null | undefined): string | null {
 
 // ---------- layout pieces ----------
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5 ${className}`}>{children}</div>;
+  return <div className={`rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5 ${className}`}>{children}</div>;
 }
 
 export function PrimaryButton({
@@ -107,15 +107,15 @@ export function PrimaryButton({
   variant?: "primary" | "success" | "plain";
 }) {
   const styles = {
-    primary: "bg-violet-600 text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700",
+    primary: "bg-neutral-900 text-white shadow-lg shadow-black/15 hover:bg-black",
     success: "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600",
-    plain: "bg-white text-indigo-950 ring-1 ring-indigo-950/10 hover:bg-indigo-50",
+    plain: "bg-white text-neutral-950 ring-1 ring-neutral-950/10 hover:bg-neutral-100",
   }[variant];
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full rounded-2xl py-4 text-base font-bold transition active:scale-[0.98] disabled:opacity-50 ${styles}`}
+      className={`w-full rounded-full py-4 text-base font-semibold transition active:scale-[0.98] disabled:opacity-50 ${styles}`}
     >
       {children}
     </button>
@@ -128,7 +128,7 @@ export function Chip({ active, onClick, children }: { active: boolean; onClick: 
       onClick={onClick}
       aria-pressed={active}
       className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-        active ? "bg-violet-600 text-white shadow-sm" : "bg-white text-indigo-900 ring-1 ring-indigo-950/10 hover:bg-indigo-50"
+        active ? "bg-neutral-900 text-white shadow-sm" : "bg-white text-neutral-900 ring-1 ring-neutral-950/10 hover:bg-neutral-100"
       }`}
     >
       {children}
@@ -138,7 +138,7 @@ export function Chip({ active, onClick, children }: { active: boolean; onClick: 
 
 export function BackButton({ onClick, label = "Back" }: { onClick: () => void; label?: string }) {
   return (
-    <button onClick={onClick} className="mb-4 self-start rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-indigo-900 ring-1 ring-indigo-950/10">
+    <button onClick={onClick} className="mb-4 self-start rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-neutral-900 ring-1 ring-neutral-950/10">
       ← {label}
     </button>
   );
@@ -157,7 +157,7 @@ export function FreshnessRing({ value, size = 64, stroke = 7, children }: { valu
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }} role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label="Freshness">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f7" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#efeff1" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -171,7 +171,7 @@ export function FreshnessRing({ value, size = 64, stroke = 7, children }: { valu
           style={{ transition: "stroke-dashoffset 0.6s ease" }}
         />
       </svg>
-      <div className="absolute inset-0 grid place-items-center">{children ?? <span className="text-sm font-black">{value}%</span>}</div>
+      <div className="absolute inset-0 grid place-items-center">{children ?? <span className="text-sm font-bold">{value}%</span>}</div>
     </div>
   );
 }
@@ -181,7 +181,7 @@ export function DirtBar({ level }: { level: NeedLevel }) {
   return (
     <div className="flex gap-0.5" aria-label={s.label}>
       {[0, 1, 2, 3].map((i) => (
-        <span key={i} className={`h-1.5 w-3 rounded-full ${i < s.segments ? s.bar : "bg-indigo-950/10"}`} />
+        <span key={i} className={`h-1.5 w-3 rounded-full ${i < s.segments ? s.bar : "bg-neutral-950/10"}`} />
       ))}
     </div>
   );
@@ -192,7 +192,7 @@ export function EffortDots({ minutes }: { minutes: number }) {
   return (
     <span className="flex items-center gap-0.5" aria-label={`${pts} effort points`}>
       {[1, 2, 3].map((i) => (
-        <span key={i} className={`h-1.5 w-1.5 rounded-full ${i <= pts ? "bg-violet-500" : "bg-indigo-950/10"}`} />
+        <span key={i} className={`h-1.5 w-1.5 rounded-full ${i <= pts ? "bg-neutral-1000" : "bg-neutral-950/10"}`} />
       ))}
     </span>
   );
@@ -220,9 +220,9 @@ export function TaskRow({
     <li className={`flex items-center gap-3 py-2.5 ${checked ? "row-done" : ""}`}>
       <IconTile emoji={CATEGORY_EMOJI[category] ?? "✨"} tint={CATEGORY_TINT[category] ?? "bg-pink-100"} />
       <div className="min-w-0 flex-1">
-        <p className={`font-semibold leading-snug ${checked ? "text-indigo-900/40 line-through" : ""}`}>{title}</p>
-        {subtitle && <p className="truncate text-xs text-indigo-900/50">{subtitle}</p>}
-        <div className="mt-1 flex items-center gap-2 text-xs text-indigo-900/50">
+        <p className={`font-semibold leading-snug ${checked ? "text-neutral-900/40 line-through" : ""}`}>{title}</p>
+        {subtitle && <p className="truncate text-xs text-neutral-900/50">{subtitle}</p>}
+        <div className="mt-1 flex items-center gap-2 text-xs text-neutral-900/50">
           {level && <DirtBar level={level} />}
           {level && <span className={`font-semibold ${LEVEL_STYLE[level].text}`}>{LEVEL_STYLE[level].label}</span>}
           <span className="whitespace-nowrap">⏱ {minutes} min</span>
@@ -238,7 +238,7 @@ export function TaskRow({
           }}
           aria-label={`Mark "${title}" done`}
           className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 text-white transition ${
-            checked ? "pop border-emerald-500 bg-emerald-500" : "border-indigo-950/15 hover:border-emerald-400"
+            checked ? "pop border-emerald-500 bg-emerald-500" : "border-neutral-950/15 hover:border-emerald-400"
           }`}
         >
           {checked && "✓"}
@@ -266,7 +266,7 @@ export function ScoreBadge({ score }: { score: number }) {
   return (
     <div className={`absolute bottom-3 right-3 rounded-2xl ${color} px-4 py-2 text-center text-white shadow-xl`}>
       <div className="text-[10px] font-bold uppercase tracking-widest">Mess Score</div>
-      <div className="text-4xl font-black leading-none">{shown}</div>
+      <div className="text-4xl font-bold leading-none">{shown}</div>
     </div>
   );
 }
@@ -286,10 +286,10 @@ export function ScanningView({ image, label }: { image: string | null; label?: s
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="Scanning your photo" className="h-80 w-full object-cover" />
         )}
-        <div className="scan-line absolute inset-x-0 h-1 bg-violet-400 shadow-[0_0_20px_6px_rgba(167,139,250,0.8)]" />
-        <div className="absolute inset-0 bg-violet-900/10" />
+        <div className="scan-line absolute inset-x-0 h-1 bg-white shadow-[0_0_20px_6px_rgba(255,255,255,0.85)]" />
+        <div className="absolute inset-0 bg-black/15" />
       </div>
-      <p className="mt-6 animate-pulse text-xl font-bold text-violet-700">{label ?? SCAN_MESSAGES[i]}</p>
+      <p className="mt-6 animate-pulse text-xl font-bold text-neutral-900">{label ?? SCAN_MESSAGES[i]}</p>
     </section>
   );
 }
@@ -309,7 +309,7 @@ export function Confetti() {
           className="confetti absolute top-1/2 left-1/2 h-3 w-2 rounded-sm"
           style={
             {
-              background: ["#8b5cf6", "#10b981", "#f59e0b", "#ec4899"][i % 4],
+              background: ["#111111", "#10b981", "#f59e0b", "#ec4899"][i % 4],
               "--dx": `${(pseudoRandom(i, 1) - 0.5) * 380}px`,
               "--dy": `${-120 - pseudoRandom(i, 2) * 260}px`,
               "--rot": `${pseudoRandom(i, 3) * 720}deg`,
@@ -323,24 +323,24 @@ export function Confetti() {
 
 export function PhotoTile({ src, label, score, color, small }: { src: string | null; label: string; score: number; color: string; small?: boolean }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-indigo-50">
+    <div className="relative overflow-hidden rounded-2xl bg-neutral-100">
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={`${label} photo`} className={`${small ? "h-28" : "h-44"} w-full object-cover`} />
       ) : (
-        <div className={`${small ? "h-28" : "h-44"} w-full animate-pulse bg-indigo-100`} />
+        <div className={`${small ? "h-28" : "h-44"} w-full animate-pulse bg-neutral-200`} />
       )}
-      <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-bold text-indigo-950">{label}</span>
-      <span className={`absolute bottom-2 right-2 rounded-xl ${color} px-2 py-0.5 ${small ? "text-base" : "text-xl"} font-black text-white`}>{score}</span>
+      <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-bold text-neutral-950">{label}</span>
+      <span className={`absolute bottom-2 right-2 rounded-xl ${color} px-2 py-0.5 ${small ? "text-base" : "text-xl"} font-bold text-white`}>{score}</span>
     </div>
   );
 }
 
 export function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white py-3 text-center shadow-sm ring-1 ring-indigo-950/5">
-      <div className="text-xl font-black">{value}</div>
-      <div className="text-xs text-indigo-900/50">{label}</div>
+    <div className="rounded-2xl bg-white py-3 text-center shadow-sm ring-1 ring-neutral-950/5">
+      <div className="text-xl font-bold">{value}</div>
+      <div className="text-xs text-neutral-900/50">{label}</div>
     </div>
   );
 }

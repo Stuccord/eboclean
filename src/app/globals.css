@@ -6,8 +6,8 @@
 }
 
 body {
-  background: #f4f5fb;
-  color: #1e1b4b;
+  background: #f7f7f8;
+  color: #0a0a0a;
   font-family: var(--font-inter), system-ui, sans-serif;
   font-feature-settings: "cv11", "ss01";
   letter-spacing: -0.011em;

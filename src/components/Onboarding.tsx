@@ -100,16 +100,13 @@ export function Onboarding({
     <section className="flex flex-1 flex-col">
       {qIndex >= 0 && (
         <div className="mb-6 flex items-center gap-3">
-          <button onClick={back} className="grid h-9 w-9 place-items-center rounded-full bg-white text-indigo-900 ring-1 ring-indigo-950/10" aria-label="Back">
+          <button onClick={back} className="grid h-10 w-10 place-items-center rounded-full bg-neutral-200/70 text-neutral-900" aria-label="Back">
             ←
           </button>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-indigo-950/10" role="progressbar" aria-valuenow={qIndex + 1} aria-valuemin={1} aria-valuemax={QUESTION_STEPS.length}>
-            <div className="h-full rounded-full bg-violet-600 transition-all duration-500" style={{ width: `${((qIndex + 1) / QUESTION_STEPS.length) * 100}%` }} />
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-neutral-200" role="progressbar" aria-valuenow={qIndex + 1} aria-valuemin={1} aria-valuemax={QUESTION_STEPS.length}>
+            <div className="h-full rounded-full bg-neutral-900 transition-all duration-500" style={{ width: `${((qIndex + 1) / QUESTION_STEPS.length) * 100}%` }} />
           </div>
-          <span className="text-xs font-bold text-indigo-900/50">
-            {qIndex + 1}/{QUESTION_STEPS.length}
-          </span>
-        </div>
+                  </div>
       )}
 
       {step === "welcome" && (
@@ -118,20 +115,20 @@ export function Onboarding({
             <LogoMark size={96} className="drop-shadow-xl" />
           </div>
           <Wordmark className="mt-5 text-4xl" />
-          <h1 className="mt-4 text-3xl font-black leading-tight">
+          <h1 className="mt-4 text-3xl font-bold leading-tight">
             Cleaning help for
             <br />
-            <span className="text-violet-600">brains that hate starting.</span>
+            <span className="text-neutral-900">brains that hate starting.</span>
           </h1>
-          <p className="mt-3 max-w-xs text-indigo-900/60">Tiny steps, a friendly voice to start with you, and zero guilt. Made for ADHD, burnout and busy lives.</p>
-          <div className="mt-6 grid w-full grid-cols-3 gap-2 text-xs font-semibold text-indigo-900/70">
-            <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-indigo-950/5">
+          <p className="mt-3 max-w-xs text-neutral-900/60">Tiny steps, a friendly voice to start with you, and zero guilt. Made for ADHD, burnout and busy lives.</p>
+          <div className="mt-6 grid w-full grid-cols-3 gap-2 text-xs font-semibold text-neutral-900/70">
+            <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-neutral-950/5">
               <div className="text-2xl">⏱️</div>2-min starts
             </div>
-            <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-indigo-950/5">
+            <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-neutral-950/5">
               <div className="text-2xl">🎲</div>We pick for you
             </div>
-            <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-indigo-950/5">
+            <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-neutral-950/5">
               <div className="text-2xl">😴</div>Rest days OK
             </div>
           </div>
@@ -144,7 +141,7 @@ export function Onboarding({
             >
               Get started
             </PrimaryCta>
-            <button onClick={onSignIn} className="w-full py-2 text-sm font-semibold text-violet-700">
+            <button onClick={onSignIn} className="w-full py-2 text-sm font-semibold text-neutral-900">
               I already have an account
             </button>
           </div>
@@ -204,17 +201,17 @@ export function Onboarding({
                   onClick={() => setRooms((cur) => (on ? cur.filter((x) => x !== t.key) : [...cur, t.key]))}
                   aria-pressed={on}
                   className={`relative flex flex-col items-center gap-1 rounded-2xl p-4 text-sm font-bold transition active:scale-[0.97] ${
-                    on ? "bg-violet-50 text-violet-800 ring-2 ring-violet-600" : "bg-white ring-1 ring-indigo-950/10"
+                    on ? "bg-neutral-950 text-white" : "bg-neutral-200/60 text-neutral-900"
                   }`}
                 >
-                  {on && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-violet-600 text-[11px] text-white">✓</span>}
+                  {on && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-white text-[11px] text-neutral-950">✓</span>}
                   <span className="text-3xl">{t.emoji}</span>
                   {t.name}
                 </button>
               );
             })}
           </div>
-          <button onClick={onScanInstead} className="mt-3 w-full text-center text-sm font-semibold text-violet-700">
+          <button onClick={onScanInstead} className="mt-3 w-full text-center text-sm font-semibold text-neutral-900">
             📸 Or snap a photo of a room instead
           </button>
           <Footer>
@@ -234,11 +231,11 @@ export function Onboarding({
                 onClick={() => setMinutes(m.value)}
                 aria-pressed={minutes === m.value}
                 className={`rounded-2xl p-4 text-left transition active:scale-[0.97] ${
-                  minutes === m.value ? "bg-violet-50 ring-2 ring-violet-600" : "bg-white ring-1 ring-indigo-950/10"
+                  minutes === m.value ? "bg-neutral-950 text-white" : "bg-neutral-200/60 text-neutral-900"
                 }`}
               >
-                <span className="block text-2xl font-black">{m.label}</span>
-                <span className="text-xs text-indigo-900/60">{m.sub}</span>
+                <span className="block text-2xl font-bold">{m.label}</span>
+                <span className={`text-xs ${minutes === m.value ? "text-white/60" : "text-neutral-500"}`}>{m.sub}</span>
               </button>
             ))}
           </div>
@@ -253,8 +250,8 @@ export function Onboarding({
           <div className="animate-bounce">
             <LogoMark size={80} />
           </div>
-          <h2 className="mt-6 text-2xl font-black">Building your plan</h2>
-          <p className="mt-2 animate-pulse text-indigo-900/60">{BUILD_LINES[buildLine]}</p>
+          <h2 className="mt-6 text-2xl font-bold">Building your plan</h2>
+          <p className="mt-2 animate-pulse text-neutral-900/60">{BUILD_LINES[buildLine]}</p>
         </div>
       )}
 
@@ -262,27 +259,27 @@ export function Onboarding({
         <div className="flex flex-1 flex-col">
           <div className="text-center">
             <div className="text-5xl">🎉</div>
-            <h2 className="mt-2 text-3xl font-black">Your plan is ready</h2>
-            <p className="mt-1 text-indigo-900/60">
+            <h2 className="mt-2 text-3xl font-bold">Your plan is ready</h2>
+            <p className="mt-1 text-neutral-900/60">
               {roomCount} room{roomCount === 1 ? "" : "s"} · {taskCount} small tasks, spread out so nothing piles up.
             </p>
           </div>
 
-          <div className="mt-5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
+          <div className="mt-5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
             <div className="mb-1 flex items-center justify-between">
-              <h3 className="font-black">Today&apos;s first reset</h3>
-              <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">~{totalMin} min</span>
+              <h3 className="font-bold">Today&apos;s first reset</h3>
+              <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-900">~{totalMin} min</span>
             </div>
-            <ul className="divide-y divide-indigo-950/5">
+            <ul className="divide-y divide-neutral-950/5">
               {plan.slice(0, 4).map((s) => (
                 <li key={s.taskId} className="flex items-center gap-3 py-2.5">
                   <IconTile emoji={CATEGORY_EMOJI[s.category] ?? "✨"} tint={CATEGORY_TINT[s.category] ?? "bg-pink-100"} size="sm" />
                   <span className="flex-1 text-sm font-semibold">{s.title}</span>
-                  <span className="text-xs text-indigo-900/50">{s.minutes}m</span>
+                  <span className="text-xs text-neutral-900/50">{s.minutes}m</span>
                 </li>
               ))}
             </ul>
-            {plan.length > 4 && <p className="pt-1 text-xs text-indigo-900/50">+ {plan.length - 4} more</p>}
+            {plan.length > 4 && <p className="pt-1 text-xs text-neutral-900/50">+ {plan.length - 4} more</p>}
           </div>
 
           <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">
@@ -296,7 +293,7 @@ export function Onboarding({
               {plan.length ? "Start my first 2 minutes ▶" : "Go to my home"}
             </PrimaryCta>
             {plan.length > 0 && (
-              <button onClick={() => onFinish(minutes)} className="w-full py-2 text-sm font-semibold text-violet-700">
+              <button onClick={() => onFinish(minutes)} className="w-full py-2 text-sm font-semibold text-neutral-900">
                 Look around first
               </button>
             )}
@@ -310,8 +307,8 @@ export function Onboarding({
 function Question({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col">
-      <h2 className="text-3xl font-black leading-tight">{title}</h2>
-      <p className="mt-2 text-indigo-900/60">{sub}</p>
+      <h2 className="text-[32px] font-bold leading-tight tracking-tight">{title}</h2>
+      <p className="mt-2 text-neutral-500">{sub}</p>
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
     </div>
   );
@@ -340,18 +337,18 @@ function ChoiceCard({
     <button
       onClick={onClick}
       aria-pressed={selected}
-      className={`flex w-full items-center gap-3 rounded-2xl p-4 text-left transition active:scale-[0.98] ${
-        selected ? "bg-violet-50 ring-2 ring-violet-600" : "bg-white ring-1 ring-indigo-950/10 hover:ring-violet-300"
+      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left transition active:scale-[0.98] ${
+        selected ? "bg-neutral-950 text-white" : "bg-neutral-200/60 text-neutral-900 hover:bg-neutral-200"
       }`}
     >
       <span className="text-2xl">{emoji}</span>
       <span className="flex-1">
         <span className="block font-bold">{label}</span>
-        {sub && <span className="text-sm text-indigo-900/60">{sub}</span>}
+        {sub && <span className={`text-sm ${selected ? "text-white/60" : "text-neutral-500"}`}>{sub}</span>}
       </span>
       <span
-        className={`grid h-6 w-6 shrink-0 place-items-center ${multi ? "rounded-md" : "rounded-full"} border-2 text-xs text-white ${
-          selected ? "border-violet-600 bg-violet-600" : "border-indigo-950/20"
+        className={`grid h-6 w-6 shrink-0 place-items-center ${multi ? "rounded-md" : "rounded-full"} border-2 text-xs ${
+          selected ? "border-white bg-white text-neutral-950" : "border-neutral-950/20"
         }`}
       >
         {selected && "✓"}
@@ -365,7 +362,7 @@ function PrimaryCta({ children, onClick, disabled }: { children: React.ReactNode
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full rounded-2xl bg-violet-600 py-4 text-lg font-black text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700 active:scale-[0.98] disabled:opacity-40"
+      className="w-full rounded-full bg-neutral-900 py-4 text-base font-semibold text-white shadow-lg shadow-black/15 transition hover:bg-black active:scale-[0.98] disabled:opacity-40"
     >
       {children}
     </button>

@@ -138,13 +138,13 @@ export function MissionRunner({
     return (
       <section className="flex flex-1 flex-col items-center justify-center text-center">
         <LogoMark size={88} className="drop-shadow-lg" />
-        <h2 className="mt-4 text-3xl font-black">Just 2 minutes.</h2>
-        <p className="mt-3 max-w-xs text-indigo-900/60">
+        <h2 className="mt-4 text-3xl font-bold">Just 2 minutes.</h2>
+        <p className="mt-3 max-w-xs text-neutral-900/60">
           I&apos;ll stay with you and tell you exactly what to do. After 2 minutes you can stop, and it still counts.
         </p>
-        <div className="mt-6 w-full rounded-3xl bg-white p-4 text-left shadow-sm ring-1 ring-indigo-950/5">
+        <div className="mt-6 w-full rounded-3xl bg-white p-4 text-left shadow-sm ring-1 ring-neutral-950/5">
           <p className="text-sm font-bold">🎁 Pick a reward for after</p>
-          <p className="text-xs text-indigo-900/50">Your brain works better with something to look forward to.</p>
+          <p className="text-xs text-neutral-900/50">Your brain works better with something to look forward to.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {REWARDS.map((r) => (
               <button
@@ -152,7 +152,7 @@ export function MissionRunner({
                 onClick={() => setReward(reward === r ? null : r)}
                 aria-pressed={reward === r}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                  reward === r ? "bg-violet-600 text-white" : "bg-indigo-50 text-indigo-900 hover:bg-indigo-100"
+                  reward === r ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
                 }`}
               >
                 {r}
@@ -160,8 +160,8 @@ export function MissionRunner({
             ))}
           </div>
         </div>
-        <label className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-indigo-950/5 text-sm">
-          <input type="checkbox" checked={voiceOn} onChange={(e) => setVoiceOn(e.target.checked)} className="h-5 w-5 accent-violet-600" />
+        <label className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-neutral-950/5 text-sm">
+          <input type="checkbox" checked={voiceOn} onChange={(e) => setVoiceOn(e.target.checked)} className="h-5 w-5 accent-neutral-900" />
           Talk to me out loud 🔊
         </label>
         <div className="mt-6 w-full">
@@ -175,7 +175,7 @@ export function MissionRunner({
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance(t));
               }
             }}
-            className="w-full rounded-3xl bg-emerald-500 py-5 text-2xl font-black text-white shadow-lg shadow-emerald-500/25 transition active:scale-95"
+            className="w-full rounded-3xl bg-emerald-500 py-5 text-2xl font-bold text-white shadow-lg shadow-emerald-500/25 transition active:scale-95"
           >
             ▶ Start with me
           </button>
@@ -191,20 +191,20 @@ export function MissionRunner({
 
   return (
     <section className="relative flex flex-1 flex-col">
-      <div className="flex items-center justify-between text-sm text-indigo-900/60">
+      <div className="flex items-center justify-between text-sm text-neutral-900/60">
         <span>
           Step {stepIndex + 1} of {steps.length}
         </span>
         <span className="font-mono">⏱ {mm}:{ss}</span>
         {liveScore !== undefined ? (
           <span>
-            Mess Score <b className="text-indigo-950">{liveScore}</b>
+            Mess Score <b className="text-neutral-950">{liveScore}</b>
           </span>
         ) : (
           <span>{doneCount} done</span>
         )}
       </div>
-      <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-indigo-950/10">
+      <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-neutral-950/10">
         <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
 
@@ -217,12 +217,12 @@ export function MissionRunner({
       {companion && (
         <div className="mt-4 flex items-start gap-3">
           <LogoMark size={40} className="shrink-0 rounded-full" />
-          <div className="relative rounded-2xl rounded-tl-sm bg-indigo-50 px-4 py-2 text-sm" aria-live="polite">
+          <div className="relative rounded-2xl rounded-tl-sm bg-neutral-100 px-4 py-2 text-sm" aria-live="polite">
             {bubble}
           </div>
           <button
             onClick={() => setVoiceOn((v) => !v)}
-            className="ml-auto shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-sm"
+            className="ml-auto shrink-0 rounded-full bg-neutral-100 px-2 py-1 text-sm"
             aria-label={voiceOn ? "Mute Ebo" : "Unmute Ebo"}
           >
             {voiceOn ? "🔊" : "🔇"}
@@ -242,11 +242,11 @@ export function MissionRunner({
           setBurst((b) => b + 1);
           advance(next);
         }}
-        className="w-full rounded-3xl bg-emerald-500 py-5 text-2xl font-black text-white shadow-lg shadow-emerald-500/25 transition active:scale-95"
+        className="w-full rounded-3xl bg-emerald-500 py-5 text-2xl font-bold text-white shadow-lg shadow-emerald-500/25 transition active:scale-95"
       >
         ✓ Done (+10)
       </button>
-      <div className="mt-3 flex justify-between text-sm text-indigo-900/50">
+      <div className="mt-3 flex justify-between text-sm text-neutral-900/50">
         <button onClick={() => advance(completed)} className="underline-offset-4 hover:underline">
           Skip this one
         </button>
@@ -256,18 +256,18 @@ export function MissionRunner({
       </div>
 
       {showCheckIn && (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-indigo-950/40 p-6">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl ring-1 ring-indigo-950/5">
+        <div className="fixed inset-0 z-40 grid place-items-center bg-neutral-950/40 p-6">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl ring-1 ring-neutral-950/5">
             <div className="text-5xl">🎉</div>
-            <h3 className="mt-3 text-2xl font-black">2 minutes done!</h3>
-            <p className="mt-2 text-indigo-900/60">That already counts. Keep the momentum going?</p>
+            <h3 className="mt-3 text-2xl font-bold">2 minutes done!</h3>
+            <p className="mt-2 text-neutral-900/60">That already counts. Keep the momentum going?</p>
             <button
               onClick={() => {
                 setShowCheckIn(false);
                 checkInState.current = "done";
                 say(`Let's keep going! Still on: ${steps[stepIndex].title}.`);
               }}
-              className="mt-5 w-full rounded-2xl bg-emerald-500 py-3 font-black text-white"
+              className="mt-5 w-full rounded-2xl bg-emerald-500 py-3 font-bold text-white"
             >
               Keep going 💪
             </button>
@@ -277,7 +277,7 @@ export function MissionRunner({
                 checkInState.current = "done";
                 finish(completed, true);
               }}
-              className="mt-2 w-full rounded-2xl bg-indigo-50 py-3 font-bold"
+              className="mt-2 w-full rounded-2xl bg-neutral-100 py-3 font-bold"
             >
               Stop here, I did it
             </button>
@@ -305,15 +305,15 @@ function StepCard({ title, detail, minutes, category }: { title: string; detail:
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const frac = total > 0 ? secondsLeft / total : 0;
-  const color = frac > 0.5 ? "#8b5cf6" : frac > 0.2 ? "#f59e0b" : "#f43f5e";
+  const color = frac > 0.5 ? "#111111" : frac > 0.2 ? "#f59e0b" : "#f43f5e";
 
   return (
     <div className="my-6 flex flex-1 flex-col items-center text-center">
-      <h2 className="text-3xl font-black">{title}</h2>
-      <p className="mt-2 text-base text-indigo-900/70">{detail}</p>
+      <h2 className="text-3xl font-bold">{title}</h2>
+      <p className="mt-2 text-base text-neutral-900/70">{detail}</p>
       <div className="relative mt-6" style={{ width: size, height: size }} role="timer" aria-label={`${mm} minutes ${ss} seconds left`}>
         <svg width={size} height={size} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eceaf8" strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#ececee" strokeWidth={stroke} />
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -329,7 +329,7 @@ function StepCard({ title, detail, minutes, category }: { title: string; detail:
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-5xl">{CATEGORY_EMOJI[category] ?? "✨"}</span>
-          <span className={`mt-1 font-mono text-3xl font-black ${secondsLeft === 0 ? "text-amber-500" : ""}`}>
+          <span className={`mt-1 font-mono text-3xl font-bold ${secondsLeft === 0 ? "text-amber-500" : ""}`}>
             {mm}:{ss}
           </span>
         </div>

@@ -63,30 +63,30 @@ export default function Home() {
   const isNewUser = data.loaded && ((data.rooms.length === 0 && data.history.length === 0) || onboarding);
 
   return (
-    <main className="min-h-dvh text-indigo-950">
+    <main className="min-h-dvh text-neutral-950">
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-[max(1.25rem,env(safe-area-inset-left))] pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]">
         {!(view.kind === "tab" && isNewUser) && (
-        <header className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between bg-[#f4f5fb]/90 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md">
+        <header className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between bg-[#f7f7f8]/90 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md">
           <button onClick={() => goTab("today")} className="flex items-center gap-2 whitespace-nowrap text-lg" aria-label="Eboclean home">
-            <LogoMark size={36} className="shadow-sm shadow-violet-600/30 rounded-[10px]" />
+            <LogoMark size={36} className="shadow-sm shadow-black/15 rounded-[10px]" />
             <Wordmark className="hidden text-xl min-[400px]:inline" />
           </button>
           <div className="flex gap-1.5 text-sm font-bold">
             {billing.status?.subscribed ? (
-              <span className="rounded-full bg-violet-600 px-3 py-1 text-xs font-black leading-5 text-white">PRO</span>
+              <span className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold leading-5 text-white">PRO</span>
             ) : billing.status?.onTrial ? (
-              <button onClick={() => setPaywall("upgrade")} className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black leading-5 text-violet-700">
+              <button onClick={() => setPaywall("upgrade")} className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold leading-5 text-neutral-900">
                 TRIAL
               </button>
             ) : billing.status ? (
-              <button onClick={() => setPaywall("upgrade")} className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black leading-5 text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100">
+              <button onClick={() => setPaywall("upgrade")} className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold leading-5 text-white hover:bg-black">
                 ✨ Pro
               </button>
             ) : null}
-            <span className="rounded-full bg-orange-50 px-2.5 py-1 text-orange-600 ring-1 ring-orange-100" title="Day streak">
+            <span className="rounded-full bg-white px-3 py-1 text-neutral-900 shadow-sm ring-1 ring-black/5" title="Day streak">
               🔥 {currentStreak(progress)}
             </span>
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-600 ring-1 ring-amber-100" title="Points">
+            <span className="rounded-full bg-white px-3 py-1 text-neutral-900 shadow-sm ring-1 ring-black/5" title="Points">
               ⭐ {progress.points}
             </span>
           </div>
@@ -102,7 +102,7 @@ export default function Home() {
         )}
 
         {!data.loaded ? (
-          <div className="flex flex-1 items-center justify-center text-indigo-900/50">Loading…</div>
+          <div className="flex flex-1 items-center justify-center text-neutral-900/50">Loading…</div>
         ) : view.kind === "tab" && isNewUser ? (
           <Onboarding
             onBegin={() => setOnboarding(true)}
@@ -255,14 +255,30 @@ export default function Home() {
   );
 }
 
-function TabItem({ id, label, icon, tab, onTab }: { id: Tab; label: string; icon: string; tab: Tab; onTab: (t: Tab) => void }) {
+const TAB_ICONS: Record<Tab, React.ReactNode> = {
+  today: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
+  rooms: (
+    <>
+      <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+    </>
+  ),
+  progress: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+};
+
+function TabItem({ id, label, tab, onTab }: { id: Tab; label: string; tab: Tab; onTab: (t: Tab) => void }) {
+  const active = tab === id;
   return (
     <button
       onClick={() => onTab(id)}
-      className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold transition ${tab === id ? "text-violet-700" : "text-indigo-900/40"}`}
-      aria-current={tab === id ? "page" : undefined}
+      className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition ${active ? "text-neutral-950" : "text-neutral-400"}`}
+      aria-current={active ? "page" : undefined}
     >
-      <span className={`grid h-8 w-12 place-items-center rounded-full text-lg ${tab === id ? "bg-violet-100" : ""}`}>{icon}</span>
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        {TAB_ICONS[id]}
+      </svg>
       {label}
     </button>
   );
@@ -270,20 +286,22 @@ function TabItem({ id, label, icon, tab, onTab }: { id: Tab; label: string; icon
 
 function TabBar({ tab, onTab, onScan }: { tab: Tab; onTab: (t: Tab) => void; onScan: () => void }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-indigo-950/5 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <div className="mx-auto grid max-w-md grid-cols-4 items-end">
-        <TabItem id="today" label="Today" icon="☀️" tab={tab} onTab={onTab} />
-        <TabItem id="rooms" label="My home" icon="🏠" tab={tab} onTab={onTab} />
+    <nav className="fixed inset-x-0 bottom-0 z-30 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_rgba(0,0,0,0.04),0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur">
+      <div className="mx-auto grid max-w-md grid-cols-4 items-center px-2">
+        <TabItem id="today" label="Home" tab={tab} onTab={onTab} />
+        <TabItem id="rooms" label="Rooms" tab={tab} onTab={onTab} />
+        <TabItem id="progress" label="Progress" tab={tab} onTab={onTab} />
         <div className="flex justify-center">
           <button
             onClick={onScan}
             aria-label="Scan a mess"
-            className="-mt-7 mb-2 grid h-16 w-16 place-items-center rounded-full bg-violet-600 text-2xl text-white shadow-xl shadow-violet-600/40 ring-4 ring-[#f4f5fb] transition active:scale-95"
+            className="grid h-14 w-14 place-items-center rounded-full bg-neutral-950 text-white shadow-lg shadow-black/25 transition active:scale-95"
           >
-            📸
+            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </button>
         </div>
-        <TabItem id="progress" label="Progress" icon="🏆" tab={tab} onTab={onTab} />
       </div>
     </nav>
   );
@@ -308,8 +326,8 @@ function DailyDone({
     <section className="flex flex-1 flex-col items-center justify-center text-center">
       {done > 0 && <Confetti />}
       <div className="text-7xl">{done > 0 ? "🎉" : "🌱"}</div>
-      <h2 className="mt-4 text-3xl font-black">{done === total ? "Reset complete!" : done > 0 ? "That counts!" : "Showing up counts too."}</h2>
-      <p className="mt-2 text-indigo-900/60">
+      <h2 className="mt-4 text-3xl font-bold">{done === total ? "Reset complete!" : done > 0 ? "That counts!" : "Showing up counts too."}</h2>
+      <p className="mt-2 text-neutral-900/60">
         {done > 0 ? `You knocked out ${done} of ${total} task${total === 1 ? "" : "s"} in ${minutes} min. Your rooms just got fresher.` : "Come back when you're ready. Tomorrow's reset will be waiting."}
       </p>
       {outcome.reward && done > 0 && (

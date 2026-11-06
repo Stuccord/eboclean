@@ -21,8 +21,8 @@ export function LogoMark({ size = 36, className = "" }: { size?: number; classNa
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`font-black tracking-tight ${className}`}>
-      ebo<span className="text-violet-600">clean</span>
+    <span className={`font-bold tracking-tight ${className}`}>
+      ebo<span className="text-neutral-900">clean</span>
     </span>
   );
 }

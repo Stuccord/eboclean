@@ -131,12 +131,12 @@ export function SetupFlow({
 
       {stage === "pick" && (
         <div className="flex flex-1 flex-col">
-          <button onClick={onExit} className="mb-4 self-start text-sm font-semibold text-indigo-900/50">
+          <button onClick={onExit} className="mb-4 self-start text-sm font-semibold text-neutral-900/50">
             ← Back
           </button>
           <div className="text-6xl">🏠</div>
-          <h2 className="mt-4 text-3xl font-black">{startCount + added === 0 ? "Let's map your home" : "Add another room"}</h2>
-          <p className="mt-2 text-indigo-900/60">
+          <h2 className="mt-4 text-3xl font-bold">{startCount + added === 0 ? "Let's map your home" : "Add another room"}</h2>
+          <p className="mt-2 text-neutral-900/60">
             Snap one photo per room. AI builds a gentle cleaning routine for it, so you never have to type out tasks.
           </p>
           <div className="mt-auto">
@@ -161,24 +161,24 @@ export function SetupFlow({
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="flex-1 rounded-xl bg-indigo-50 px-3 py-2 text-xl font-black outline-none focus:ring-2 focus:ring-violet-400"
+                  className="flex-1 rounded-xl bg-neutral-100 px-3 py-2 text-xl font-bold outline-none focus:ring-2 focus:ring-neutral-400"
                   aria-label="Room name"
                 />
               </div>
-              <p className="mt-2 text-indigo-900/60">{result.headline}</p>
-              <div className="mt-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
+              <p className="mt-2 text-neutral-900/60">{result.headline}</p>
+              <div className="mt-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
                 <h3 className="mb-3 font-bold">Your routine for this room</h3>
                 <ul className="space-y-2">
                   {tasks.map((t, i) => (
                     <li key={i} className="flex items-center gap-3 text-sm">
                       <span>{CATEGORY_EMOJI[t.category] ?? "✨"}</span>
                       <span className="flex-1">{t.title}</span>
-                      <span className="whitespace-nowrap text-xs text-indigo-900/50">
+                      <span className="whitespace-nowrap text-xs text-neutral-900/50">
                         {everyLabel(t.every_days)} · {t.minutes}m
                       </span>
                       <button
                         onClick={() => setTasks(tasks.filter((_, j) => j !== i))}
-                        className="rounded-full px-2 text-indigo-900/50 hover:bg-indigo-50 hover:text-violet-700"
+                        className="rounded-full px-2 text-neutral-900/50 hover:bg-neutral-100 hover:text-neutral-900"
                         aria-label={`Remove ${t.title}`}
                       >
                         ✕
@@ -195,7 +195,7 @@ export function SetupFlow({
             </>
           ) : (
             <>
-              <h2 className="mt-5 text-2xl font-black">{result.headline}</h2>
+              <h2 className="mt-5 text-2xl font-bold">{result.headline}</h2>
               <div className="mt-6">
                 <PrimaryButton variant="plain" onClick={() => input.current?.click()}>
                   📸 Try another photo
@@ -209,8 +209,8 @@ export function SetupFlow({
       {stage === "saved" && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <div className="text-7xl">✅</div>
-          <h2 className="mt-4 text-3xl font-black">{name} added!</h2>
-          <p className="mt-2 text-indigo-900/60">
+          <h2 className="mt-4 text-3xl font-bold">{name} added!</h2>
+          <p className="mt-2 text-neutral-900/60">
             {startCount + added} room{startCount + added === 1 ? "" : "s"} mapped. Add the rest of your home, or start today&apos;s reset.
           </p>
           <div className="mt-8 w-full space-y-3">

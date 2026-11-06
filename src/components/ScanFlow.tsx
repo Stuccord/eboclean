@@ -139,17 +139,17 @@ export function ScanFlow({
 
       {stage === "pick" && (
         <div className="flex flex-1 flex-col">
-          <button onClick={onExit} className="mb-4 self-start text-sm font-semibold text-indigo-900/50">
+          <button onClick={onExit} className="mb-4 self-start text-sm font-semibold text-neutral-900/50">
             ← Back
           </button>
           <div className="text-6xl">{room?.emoji ?? "📸"}</div>
-          <h2 className="mt-4 text-3xl font-black">{room ? `Scan your ${room.name.toLowerCase()}` : "Scan a messy spot"}</h2>
-          <p className="mt-2 text-indigo-900/60">
+          <h2 className="mt-4 text-3xl font-bold">{room ? `Scan your ${room.name.toLowerCase()}` : "Scan a messy spot"}</h2>
+          <p className="mt-2 text-neutral-900/60">
             Take a photo of the mess. You&apos;ll get a Mess Score and a {timeBudget}-minute mission made just for it.
           </p>
           <div className="mt-auto">
             <PrimaryButton onClick={() => beforeInput.current?.click()}>📸 Take the photo</PrimaryButton>
-            <p className="mt-3 text-center text-xs text-indigo-900/50">Photos stay on your device. They&apos;re only sent to make your plan.</p>
+            <p className="mt-3 text-center text-xs text-neutral-900/50">Photos stay on your device. They&apos;re only sent to make your plan.</p>
           </div>
         </div>
       )}
@@ -167,21 +167,21 @@ export function ScanFlow({
           </div>
           {before.is_space ? (
             <>
-              <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-indigo-900/50">{before.zone_label}</p>
-              <h2 className="mt-1 text-2xl font-black">{before.headline}</h2>
+              <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-neutral-900/50">{before.zone_label}</p>
+              <h2 className="mt-1 text-2xl font-bold">{before.headline}</h2>
               {before.items_found.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {before.items_found.slice(0, 6).map((it) => (
-                    <span key={it.name} className="rounded-full bg-indigo-50 px-3 py-1 text-sm">
+                    <span key={it.name} className="rounded-full bg-neutral-100 px-3 py-1 text-sm">
                       {it.count} × {it.name}
                     </span>
                   ))}
                 </div>
               )}
-              <div className="mt-5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
+              <div className="mt-5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="font-bold">Your mission</h3>
-                  <span className="text-sm text-indigo-900/60">
+                  <span className="text-sm text-neutral-900/60">
                     {before.steps.length} steps · ~{totalMinutes} min
                   </span>
                 </div>
@@ -190,13 +190,13 @@ export function ScanFlow({
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <span>{CATEGORY_EMOJI[s.category] ?? "✨"}</span>
                       <span className="flex-1">{s.title}</span>
-                      <span className="text-indigo-900/50">{s.minutes}m</span>
+                      <span className="text-neutral-900/50">{s.minutes}m</span>
                     </li>
                   ))}
                 </ol>
               </div>
-              <label className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-indigo-950/5 text-sm">
-                <input type="checkbox" checked={companion} onChange={(e) => setCompanion(e.target.checked)} className="h-5 w-5 accent-violet-600" />
+              <label className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-neutral-950/5 text-sm">
+                <input type="checkbox" checked={companion} onChange={(e) => setCompanion(e.target.checked)} className="h-5 w-5 accent-neutral-900" />
                 Clean with Ebo (talks you through it, 2-minute start)
               </label>
               <div className="mt-4">
@@ -207,7 +207,7 @@ export function ScanFlow({
             </>
           ) : (
             <>
-              <h2 className="mt-5 text-2xl font-black">{before.headline}</h2>
+              <h2 className="mt-5 text-2xl font-bold">{before.headline}</h2>
               <div className="mt-6">
                 <PrimaryButton variant="plain" onClick={() => beforeInput.current?.click()}>
                   📸 Try another photo
@@ -233,11 +233,11 @@ export function ScanFlow({
       {stage === "after" && (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <div className="text-7xl">🎉</div>
-          <h2 className="mt-4 text-3xl font-black">{outcome?.stoppedEarly ? "That counts!" : "Mission complete!"}</h2>
+          <h2 className="mt-4 text-3xl font-bold">{outcome?.stoppedEarly ? "That counts!" : "Mission complete!"}</h2>
           {outcome?.reward && (
             <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-2 font-bold text-amber-800 ring-1 ring-amber-100">🎁 Reward unlocked: {outcome.reward}</p>
           )}
-          <p className="mt-2 text-indigo-900/60">
+          <p className="mt-2 text-neutral-900/60">
             Snap an <b>after</b> photo from the same spot to see your new Mess Score.
           </p>
           <div className="mt-8 w-full">
@@ -318,8 +318,8 @@ function DoneView({
 
   return (
     <div className="flex flex-1 flex-col">
-      <h2 className="text-center text-3xl font-black">Glow-up unlocked ✨</h2>
-      <p className="mt-2 text-center text-indigo-900/60">{after.comparison || after.encouragement}</p>
+      <h2 className="text-center text-3xl font-bold">Glow-up unlocked ✨</h2>
+      <p className="mt-2 text-center text-neutral-900/60">{after.comparison || after.encouragement}</p>
       <div className="mt-5 grid grid-cols-2 gap-3">
         <PhotoTile src={beforeImage} label="Before" score={before.mess_score} color="bg-red-500" />
         <PhotoTile src={afterImage} label="After" score={after.mess_score} color="bg-emerald-500" />
@@ -330,7 +330,7 @@ function DoneView({
         <Stat label="Minutes" value={`${minutes}`} />
       </div>
       {after.steps.length > 0 && (
-        <div className="mt-5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5 text-sm">
+        <div className="mt-5 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5 text-sm">
           <p className="mb-2 font-bold">Bonus round (optional)</p>
           <ul className="space-y-1">
             {after.steps.map((s, i) => (
@@ -345,7 +345,7 @@ function DoneView({
         <PrimaryButton onClick={share} disabled={sharing}>
           {sharing ? "Making your card…" : "📲 Share my glow-up"}
         </PrimaryButton>
-        {shareMsg && <p className="text-center text-sm text-indigo-900/60">{shareMsg}</p>}
+        {shareMsg && <p className="text-center text-sm text-neutral-900/60">{shareMsg}</p>}
         <PrimaryButton variant="plain" onClick={onExit}>
           Done
         </PrimaryButton>

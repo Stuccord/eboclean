@@ -13,8 +13,8 @@ export function RoomsView({ data, onOpen, onAdd }: { data: HomeData; onOpen: (ro
   const dueTotal = data.rooms.reduce((s, r) => s + r.tasks.filter((t) => taskNeed(t, data.now) >= DUE_AT).length, 0);
   return (
     <div className="flex flex-1 flex-col">
-      <h1 className="text-3xl font-black">My home</h1>
-      <p className="mt-1 text-sm text-indigo-900/60">
+      <h1 className="text-3xl font-bold">My home</h1>
+      <p className="mt-1 text-sm text-neutral-900/60">
         {data.rooms.length} room{data.rooms.length === 1 ? "" : "s"} · {dueTotal} task{dueTotal === 1 ? "" : "s"} due
       </p>
       <div className="mt-5 grid grid-cols-2 gap-3">
@@ -23,7 +23,7 @@ export function RoomsView({ data, onOpen, onAdd }: { data: HomeData; onOpen: (ro
         ))}
         <button
           onClick={onAdd}
-          className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-4 font-bold text-violet-700 transition hover:bg-violet-50"
+          className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-4 font-bold text-neutral-900 transition hover:bg-neutral-100"
         >
           <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-2xl shadow-sm">+</span>
           Add a room
@@ -37,7 +37,7 @@ function RoomCard({ room, tint, now, onOpen }: { room: Room; tint: string; now: 
   const fresh = roomFreshness(room, now);
   const due = room.tasks.filter((t) => taskNeed(t, now) >= DUE_AT).length;
   return (
-    <button onClick={onOpen} className="flex min-h-40 flex-col items-center rounded-3xl bg-white p-4 text-center shadow-sm ring-1 ring-indigo-950/5 transition hover:shadow-md active:scale-[0.98]">
+    <button onClick={onOpen} className="flex min-h-40 flex-col items-center rounded-3xl bg-white p-4 text-center shadow-sm ring-1 ring-neutral-950/5 transition hover:shadow-md active:scale-[0.98]">
       <FreshnessRing value={fresh} size={76} stroke={6}>
         <IconTile emoji={room.emoji} tint={tint} size="md" />
       </FreshnessRing>
@@ -78,20 +78,20 @@ export function RoomDetail({
     <div className="flex flex-1 flex-col gap-4">
       <BackButton onClick={onBack} label="My home" />
 
-      <div className="relative overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-indigo-950/5">
+      <div className="relative overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-neutral-950/5">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" className="h-36 w-full object-cover" />
         ) : (
-          <div className="h-36 w-full bg-violet-100" />
+          <div className="h-36 w-full bg-neutral-100" />
         )}
         <div className="flex items-center gap-4 p-4">
           <FreshnessRing value={fresh} size={64} />
           <div>
-            <h1 className="text-2xl font-black">
+            <h1 className="text-2xl font-bold">
               {room.emoji} {room.name}
             </h1>
-            <p className="text-sm text-indigo-900/60">
+            <p className="text-sm text-neutral-900/60">
               {dueTasks.length > 0 ? `${dueTasks.length} task${dueTasks.length === 1 ? " needs" : "s need"} attention` : "Everything is clean here ✨"}
             </p>
           </div>
@@ -100,8 +100,8 @@ export function RoomDetail({
 
       {dueTasks.length > 0 && (
         <Card>
-          <h2 className="mb-1 font-black">To do</h2>
-          <ul className="divide-y divide-indigo-950/5">
+          <h2 className="mb-1 font-bold">To do</h2>
+          <ul className="divide-y divide-neutral-950/5">
             {dueTasks.map((t) => (
               <TaskRow
                 key={t.id}
@@ -122,8 +122,8 @@ export function RoomDetail({
 
       {freshTasks.length > 0 && (
         <Card>
-          <h2 className="mb-1 font-black">Clean for now</h2>
-          <ul className="divide-y divide-indigo-950/5">
+          <h2 className="mb-1 font-bold">Clean for now</h2>
+          <ul className="divide-y divide-neutral-950/5">
             {freshTasks.map((t) => (
               <TaskRow key={t.id} title={t.title} subtitle={everyLabel(t.everyDays)} category={t.category} minutes={t.minutes} need={taskNeed(t, now)} />
             ))}
@@ -134,9 +134,9 @@ export function RoomDetail({
       <PrimaryButton onClick={onScan}>📸 Scan this room</PrimaryButton>
 
       <div>
-        <h2 className="font-black">Progress timeline</h2>
+        <h2 className="font-bold">Progress timeline</h2>
         {entries.length === 0 ? (
-          <p className="mt-2 text-sm text-indigo-900/60">Scan and clean this room to start your before/after timeline.</p>
+          <p className="mt-2 text-sm text-neutral-900/60">Scan and clean this room to start your before/after timeline.</p>
         ) : (
           <div className="mt-3 space-y-4">
             {entries.map((e) => (
@@ -149,7 +149,7 @@ export function RoomDetail({
       <div className="pb-2 text-center">
         {confirmDelete ? (
           <div className="space-x-3 text-sm">
-            <span className="text-indigo-900/60">Delete this room?</span>
+            <span className="text-neutral-900/60">Delete this room?</span>
             <button
               onClick={async () => {
                 await deleteRoom(room.id);
@@ -159,12 +159,12 @@ export function RoomDetail({
             >
               Yes, delete
             </button>
-            <button onClick={() => setConfirmDelete(false)} className="text-indigo-900/60">
+            <button onClick={() => setConfirmDelete(false)} className="text-neutral-900/60">
               Cancel
             </button>
           </div>
         ) : (
-          <button onClick={() => setConfirmDelete(true)} className="text-xs text-indigo-900/40 hover:text-rose-600">
+          <button onClick={() => setConfirmDelete(true)} className="text-xs text-neutral-900/40 hover:text-rose-600">
             Delete room
           </button>
         )}
@@ -178,7 +178,7 @@ export function TimelineEntry({ entry, showRoom }: { entry: HistoryEntry; showRo
   const after = usePhoto(entry.afterPhotoId);
   return (
     <Card className="p-3">
-      <div className="mb-2 flex justify-between text-xs font-semibold text-indigo-900/50">
+      <div className="mb-2 flex justify-between text-xs font-semibold text-neutral-900/50">
         <span>
           {formatDate(entry.date)}
           {showRoom ? ` · ${entry.roomName}` : ""}

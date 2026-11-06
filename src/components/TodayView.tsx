@@ -70,8 +70,8 @@ export function TodayView({
   if (rooms.length === 0) {
     return (
       <div className="flex flex-1 flex-col">
-        <h1 className="text-3xl font-black">{greeting} 👋</h1>
-        <p className="mt-2 text-indigo-900/60">Add your rooms once and we&apos;ll pick the 10 minutes that matter most, every day.</p>
+        <h1 className="text-3xl font-bold">{greeting} 👋</h1>
+        <p className="mt-2 text-neutral-900/60">Add your rooms once and we&apos;ll pick the 10 minutes that matter most, every day.</p>
         <div className="mt-6 space-y-3">
           <PrimaryButton onClick={onSetup}>🏠 Set up my home</PrimaryButton>
           <PrimaryButton variant="plain" onClick={onScan}>
@@ -85,8 +85,8 @@ export function TodayView({
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div>
-        <p className="text-sm font-semibold text-indigo-900/50">{greeting} 👋</p>
-        <h1 className="text-3xl font-black">Your home today</h1>
+        <p className="text-sm font-semibold text-neutral-900/50">{greeting} 👋</p>
+        <h1 className="text-3xl font-bold">Your home today</h1>
       </div>
 
       <InstallCard compact />
@@ -106,7 +106,7 @@ export function TodayView({
       >
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-2xl shadow-sm">😵‍💫</span>
         <span className="flex-1">
-          <span className="block font-black text-rose-700">Feeling overwhelmed?</span>
+          <span className="block font-bold text-rose-700">Feeling overwhelmed?</span>
           <span className="text-sm text-rose-900/70">Tap here. We&apos;ll give you one tiny thing, just 2 minutes.</span>
         </span>
         <span className="text-rose-400">›</span>
@@ -116,14 +116,14 @@ export function TodayView({
         <FreshnessRing value={homeFresh} size={72} />
         <div>
           <p className="font-bold">Home freshness</p>
-          <p className="text-sm text-indigo-900/60">
+          <p className="text-sm text-neutral-900/60">
             {homeFresh >= 70 ? "Looking great! Keep the streak alive." : homeFresh >= 40 ? "A quick reset will make a big difference." : "Let's start small. Every task counts."}
           </p>
         </div>
       </Card>
 
       <div>
-        <p className="mb-2 text-sm font-bold text-indigo-900/60">How much time do you have?</p>
+        <p className="mb-2 text-sm font-bold text-neutral-900/60">How much time do you have?</p>
         <div className="flex flex-wrap gap-2">
           {TIME_OPTIONS.map((t) => (
             <Chip key={t} active={timeBudget === t} onClick={() => setTimeBudget(t)}>
@@ -143,24 +143,24 @@ export function TodayView({
       <Card>
         <div className="mb-1 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-black">Today&apos;s plan</h2>
-            <span className="text-xs font-bold text-violet-700">
+            <h2 className="text-lg font-bold">Today&apos;s plan</h2>
+            <span className="text-xs font-bold text-neutral-900">
               ~{total} min · {points} pts
             </span>
           </div>
           {plan.length > 1 && (
             <button
               onClick={() => setSpinning(true)}
-              className="rounded-full bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700 ring-1 ring-violet-100 hover:bg-violet-100"
+              className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold text-neutral-900 ring-1 ring-neutral-200 hover:bg-neutral-100"
             >
               🎲 Pick for me
             </button>
           )}
         </div>
         {plan.length === 0 ? (
-          <p className="py-6 text-center text-indigo-900/60">✨ Everything&apos;s fresh. Nothing is due today!</p>
+          <p className="py-6 text-center text-neutral-900/60">✨ Everything&apos;s fresh. Nothing is due today!</p>
         ) : (
-          <ul className="divide-y divide-indigo-950/5">
+          <ul className="divide-y divide-neutral-950/5">
             {plan.map((s) => {
               const task = s.taskId ? taskById.get(s.taskId) : undefined;
               return (
@@ -185,7 +185,7 @@ export function TodayView({
       {plan.length > 0 && (
         <div className="space-y-2">
           <PrimaryButton onClick={() => onStart(plan, true)}>🧹 Clean with Ebo (guided)</PrimaryButton>
-          <button onClick={() => onStart(plan, false)} className="w-full py-1 text-center text-sm font-semibold text-violet-700">
+          <button onClick={() => onStart(plan, false)} className="w-full py-1 text-center text-sm font-semibold text-neutral-900">
             Focus mode, one task at a time
           </button>
         </div>
@@ -204,12 +204,12 @@ export function TodayView({
 
       <button
         onClick={onScan}
-        className="flex w-full items-center gap-3 rounded-3xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-4 text-left transition hover:bg-violet-50"
+        className="flex w-full items-center gap-3 rounded-3xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-4 text-left transition hover:bg-neutral-100"
       >
         <span className="text-2xl">📸</span>
         <span>
           <span className="block font-bold">Got a mess right now?</span>
-          <span className="text-sm text-indigo-900/60">Snap it and get a Mess Score + quick mission.</span>
+          <span className="text-sm text-neutral-900/60">Snap it and get a Mess Score + quick mission.</span>
         </span>
       </button>
     </div>

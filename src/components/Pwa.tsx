@@ -81,29 +81,29 @@ export function InstallCard({ compact = false }: { compact?: boolean }) {
   if (compact && dismissed) return null;
 
   return (
-    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
+    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
       <div className="flex items-center gap-3">
         <LogoMark size={48} className="shrink-0" />
         <div className="flex-1">
-          <p className="font-black">Add Eboclean to your home screen</p>
-          <p className="text-sm text-indigo-900/60">Opens like a real app, full screen, even offline.</p>
+          <p className="font-bold">Add Eboclean to your home screen</p>
+          <p className="text-sm text-neutral-900/60">Opens like a real app, full screen, even offline.</p>
         </div>
         {compact && (
-          <button onClick={dismiss} className="self-start rounded-full px-2 text-indigo-900/40 hover:text-indigo-900" aria-label="Dismiss">
+          <button onClick={dismiss} className="self-start rounded-full px-2 text-neutral-900/40 hover:text-neutral-900" aria-label="Dismiss">
             ✕
           </button>
         )}
       </div>
 
       {mode === "android" && canPrompt && (
-        <button onClick={install} className="mt-3 w-full rounded-2xl bg-violet-600 py-3 text-sm font-black text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700">
+        <button onClick={install} className="mt-3 w-full rounded-full bg-neutral-900 py-3 text-sm font-bold text-white shadow-lg shadow-black/15 hover:bg-black">
           📲 Install app
         </button>
       )}
 
       {mode === "ios" &&
         (showIosSteps ? (
-          <ol className="mt-3 space-y-2 rounded-2xl bg-indigo-50 p-3 text-sm">
+          <ol className="mt-3 space-y-2 rounded-2xl bg-neutral-100 p-3 text-sm">
             <li>
               1. Tap the <b>Share</b> button <span aria-hidden>⬆️</span> at the bottom of Safari
             </li>
@@ -115,7 +115,7 @@ export function InstallCard({ compact = false }: { compact?: boolean }) {
             </li>
           </ol>
         ) : (
-          <button onClick={() => setShowIosSteps(true)} className="mt-3 w-full rounded-2xl bg-violet-600 py-3 text-sm font-black text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700">
+          <button onClick={() => setShowIosSteps(true)} className="mt-3 w-full rounded-full bg-neutral-900 py-3 text-sm font-bold text-white shadow-lg shadow-black/15 hover:bg-black">
             📲 Show me how
           </button>
         ))}

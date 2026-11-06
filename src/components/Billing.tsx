@@ -142,24 +142,24 @@ export function Paywall({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-indigo-950/40 sm:items-center" role="dialog" aria-modal="true" aria-label="Upgrade to Pro">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-950/40 sm:items-center" role="dialog" aria-modal="true" aria-label="Upgrade to Pro">
       <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
         <div className="flex justify-end">
-          <button onClick={onClose} className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-900/60" aria-label="Close">
+          <button onClick={onClose} className="rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-900/60" aria-label="Close">
             ✕
           </button>
         </div>
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-violet-100 text-4xl">✨</div>
-        <h2 className="mt-3 text-center text-2xl font-black">{headline}</h2>
-        <p className="mt-1 text-center text-sm text-indigo-900/60">Go Pro and let Eboclean carry the mental load.</p>
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-neutral-100 text-4xl">✨</div>
+        <h2 className="mt-3 text-center text-2xl font-bold">{headline}</h2>
+        <p className="mt-1 text-center text-sm text-neutral-900/60">Go Pro and let Eboclean carry the mental load.</p>
 
         <ul className="mt-5 space-y-3">
           {PRO_FEATURES.map(([icon, title, text]) => (
             <li key={title} className="flex items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-violet-50 text-xl">{icon}</span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-neutral-100 text-xl">{icon}</span>
               <span>
                 <span className="block font-bold">{title}</span>
-                <span className="text-xs text-indigo-900/60">{text}</span>
+                <span className="text-xs text-neutral-900/60">{text}</span>
               </span>
             </li>
           ))}
@@ -170,15 +170,15 @@ export function Paywall({
             <button
               onClick={startTrial}
               disabled={loading !== null}
-              className="w-full rounded-2xl bg-violet-600 py-4 font-black text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700 active:scale-[0.98] disabled:opacity-60"
+              className="w-full rounded-full bg-neutral-900 py-4 font-bold text-white shadow-lg shadow-black/15 transition hover:bg-black active:scale-[0.98] disabled:opacity-60"
             >
               {loading === "trial" ? "Starting…" : "Try Pro free for 7 days"}
             </button>
-            <p className="mt-2 text-center text-xs text-indigo-900/50">
+            <p className="mt-2 text-center text-xs text-neutral-900/50">
               No card needed. Nothing is charged.{!signedIn && " Just a free account."}
             </p>
-            <div className="my-4 flex items-center gap-3 text-xs font-semibold text-indigo-900/40">
-              <span className="h-px flex-1 bg-indigo-950/10" /> or subscribe now <span className="h-px flex-1 bg-indigo-950/10" />
+            <div className="my-4 flex items-center gap-3 text-xs font-semibold text-neutral-900/40">
+              <span className="h-px flex-1 bg-neutral-950/10" /> or subscribe now <span className="h-px flex-1 bg-neutral-950/10" />
             </div>
           </div>
         )}
@@ -189,23 +189,23 @@ export function Paywall({
               key={p.id}
               onClick={() => setPlan(p.id)}
               aria-pressed={plan === p.id}
-              className={`relative rounded-2xl p-3 text-left ring-2 transition ${plan === p.id ? "bg-violet-50 ring-violet-600" : "bg-white ring-indigo-950/10"}`}
+              className={`relative rounded-2xl p-3 text-left ring-2 transition ${plan === p.id ? "bg-neutral-100 ring-neutral-900" : "bg-white ring-neutral-950/10"}`}
             >
               {p.badge && (
-                <span className="absolute -top-2.5 right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase text-white">{p.badge}</span>
+                <span className="absolute -top-2.5 right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">{p.badge}</span>
               )}
               <span className="block text-sm font-bold">{p.label}</span>
-              <span className="block text-xl font-black">
+              <span className="block text-xl font-bold">
                 {p.price}
-                <span className="text-xs font-semibold text-indigo-900/50"> USD</span>
+                <span className="text-xs font-semibold text-neutral-900/50"> USD</span>
               </span>
-              <span className="block text-xs text-indigo-900/60">{p.sub}</span>
+              <span className="block text-xs text-neutral-900/60">{p.sub}</span>
             </button>
           ))}
         </div>
 
         {signedIn && status?.email && (
-          <p className="mt-3 text-center text-xs text-indigo-900/50">Receipts go to {status.email}</p>
+          <p className="mt-3 text-center text-xs text-neutral-900/50">Receipts go to {status.email}</p>
         )}
 
         {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
@@ -213,13 +213,13 @@ export function Paywall({
         <button
           onClick={subscribe}
           disabled={loading !== null}
-          className={`mt-4 w-full rounded-2xl py-4 font-black transition active:scale-[0.98] disabled:opacity-60 ${
-            canTrial ? "bg-white text-violet-700 ring-2 ring-violet-600 hover:bg-violet-50" : "bg-violet-600 text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700"
+          className={`mt-4 w-full rounded-2xl py-4 font-bold transition active:scale-[0.98] disabled:opacity-60 ${
+            canTrial ? "bg-white text-neutral-900 ring-2 ring-neutral-900 hover:bg-neutral-100" : "bg-neutral-900 text-white shadow-lg shadow-black/15 hover:bg-black"
           }`}
         >
           {loading === "pay" ? "Opening secure checkout…" : `Subscribe for ${chosen.price}${chosen.period}`}
         </button>
-        <p className="mt-2 text-center text-xs text-indigo-900/50">
+        <p className="mt-2 text-center text-xs text-neutral-900/50">
           Charged in US dollars through Paystack. Renews automatically. Cancel anytime.
         </p>
         {demoBilling && (
@@ -253,16 +253,16 @@ export function PlanCard({ status, onUpgrade }: { status: BillingStatus | null; 
 
   if (status.subscribed) {
     return (
-      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
+      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-black">Eboclean Pro ✨</p>
-            <p className="text-sm text-indigo-900/60">Unlimited scans and rooms.</p>
+            <p className="font-bold">Eboclean Pro ✨</p>
+            <p className="text-sm text-neutral-900/60">Unlimited scans and rooms.</p>
           </div>
-          <span className="rounded-full bg-violet-600 px-3 py-1 text-xs font-black text-white">PRO</span>
+          <span className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold text-white">PRO</span>
         </div>
         {status.canManage && (
-          <button onClick={manage} disabled={opening} className="mt-3 w-full rounded-2xl bg-indigo-50 py-3 text-sm font-bold text-indigo-900 hover:bg-indigo-100 disabled:opacity-60">
+          <button onClick={manage} disabled={opening} className="mt-3 w-full rounded-2xl bg-neutral-100 py-3 text-sm font-bold text-neutral-900 hover:bg-neutral-200 disabled:opacity-60">
             {opening ? "Opening…" : status.demoBilling ? "Cancel demo subscription" : "Manage or cancel subscription"}
           </button>
         )}
@@ -273,17 +273,17 @@ export function PlanCard({ status, onUpgrade }: { status: BillingStatus | null; 
 
   if (status.onTrial) {
     return (
-      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
+      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-black">Pro trial ✨</p>
-            <p className="text-sm text-indigo-900/60">
+            <p className="font-bold">Pro trial ✨</p>
+            <p className="text-sm text-neutral-900/60">
               {status.trialDaysLeft} day{status.trialDaysLeft === 1 ? "" : "s"} left. Unlimited scans and rooms.
             </p>
           </div>
-          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">TRIAL</span>
+          <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-900">TRIAL</span>
         </div>
-        <button onClick={onUpgrade} className="mt-3 w-full rounded-2xl bg-violet-600 py-3 text-sm font-black text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700">
+        <button onClick={onUpgrade} className="mt-3 w-full rounded-full bg-neutral-900 py-3 text-sm font-bold text-white shadow-lg shadow-black/15 hover:bg-black">
           Keep Pro from $2.50/month
         </button>
       </div>
@@ -293,19 +293,19 @@ export function PlanCard({ status, onUpgrade }: { status: BillingStatus | null; 
   const scansLeft = Math.max(0, status.limits.scans - status.usage.scans);
   const roomsLeft = Math.max(0, status.limits.rooms - status.usage.rooms);
   return (
-    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-indigo-950/5">
-      <p className="font-black">Free plan</p>
+    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
+      <p className="font-bold">Free plan</p>
       <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-2xl bg-indigo-50 p-3">
-          <p className="text-xl font-black">{scansLeft}</p>
-          <p className="text-xs text-indigo-900/60">free scans left</p>
+        <div className="rounded-2xl bg-neutral-100 p-3">
+          <p className="text-xl font-bold">{scansLeft}</p>
+          <p className="text-xs text-neutral-900/60">free scans left</p>
         </div>
-        <div className="rounded-2xl bg-indigo-50 p-3">
-          <p className="text-xl font-black">{roomsLeft}</p>
-          <p className="text-xs text-indigo-900/60">free rooms left</p>
+        <div className="rounded-2xl bg-neutral-100 p-3">
+          <p className="text-xl font-bold">{roomsLeft}</p>
+          <p className="text-xs text-neutral-900/60">free rooms left</p>
         </div>
       </div>
-      <button onClick={onUpgrade} className="mt-3 w-full rounded-2xl bg-violet-600 py-3 text-sm font-black text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700">
+      <button onClick={onUpgrade} className="mt-3 w-full rounded-full bg-neutral-900 py-3 text-sm font-bold text-white shadow-lg shadow-black/15 hover:bg-black">
         {status.trialUsed ? "✨ Go Pro" : "✨ Try Pro free for 7 days"}
       </button>
     </div>
@@ -329,7 +329,7 @@ export function CheckoutToast({ notice, onClose }: { notice: CheckoutNotice; onC
       ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
       : notice === "error"
         ? "bg-rose-50 text-rose-800 ring-rose-200"
-        : "bg-indigo-50 text-indigo-900 ring-indigo-200";
+        : "bg-neutral-100 text-neutral-900 ring-neutral-200";
   return (
     <div className={`mb-4 flex items-start gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ${tone}`} role="status">
       <span className="flex-1">{text}</span>

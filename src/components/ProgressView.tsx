@@ -36,14 +36,14 @@ export function ProgressView({
 
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <h1 className="text-3xl font-black">Progress</h1>
+      <h1 className="text-3xl font-bold">Progress</h1>
 
-      <Card className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white ring-0">
+      <Card className="bg-gradient-to-br from-neutral-900 to-neutral-700 text-white ring-0">
         <div className="flex items-center gap-4">
           <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/20 text-4xl">{level.emoji}</div>
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-white/70">Level {levelIdx + 1}</p>
-            <p className="text-xl font-black">{level.name}</p>
+            <p className="text-xl font-bold">{level.name}</p>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
               <div className="h-full rounded-full bg-white" style={{ width: `${pct}%` }} />
             </div>
@@ -63,9 +63,9 @@ export function ProgressView({
       <PlanCard status={billing} onUpgrade={onUpgrade} />
 
       <div>
-        <h2 className="font-black">Glow-up timeline</h2>
+        <h2 className="font-bold">Glow-up timeline</h2>
         {entries.length === 0 ? (
-          <p className="mt-2 text-sm text-indigo-900/60">Scan a mess, clean it, and snap the after photo. Your before/after moments will collect here.</p>
+          <p className="mt-2 text-sm text-neutral-900/60">Scan a mess, clean it, and snap the after photo. Your before/after moments will collect here.</p>
         ) : (
           <div className="mt-3 space-y-3">
             {entries.map((e) => (
