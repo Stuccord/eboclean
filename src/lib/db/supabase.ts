@@ -15,6 +15,8 @@ interface ProfileRow {
   trial_used: boolean;
   usage_scans: number;
   usage_rooms: number;
+  ai_day?: string | null;
+  ai_count?: number | null;
 }
 
 function toProfile(r: ProfileRow): Profile {
@@ -27,6 +29,8 @@ function toProfile(r: ProfileRow): Profile {
     trialUsed: r.trial_used,
     usageScans: r.usage_scans,
     usageRooms: r.usage_rooms,
+    aiDay: r.ai_day ?? null,
+    aiCount: r.ai_count ?? 0,
   };
 }
 
@@ -38,6 +42,8 @@ function toRow(patch: ProfilePatch): Partial<ProfileRow> {
   if (patch.trialUsed !== undefined) row.trial_used = patch.trialUsed;
   if (patch.usageScans !== undefined) row.usage_scans = patch.usageScans;
   if (patch.usageRooms !== undefined) row.usage_rooms = patch.usageRooms;
+  if (patch.aiDay !== undefined) row.ai_day = patch.aiDay;
+  if (patch.aiCount !== undefined) row.ai_count = patch.aiCount;
   return row;
 }
 
@@ -124,5 +130,26 @@ export class SupabaseBackend implements AccountBackend {
     const { data, error } = await this.admin.storage.from(BUCKET).download(`${userId}/${photoId}`);
     if (error || !data) return null;
     return { bytes: Buffer.from(await data.arrayBuffer()), contentType: data.type || "image/jpeg" };
+  }
+
+  async findByPaystackCustomer(customerId: number) {
+    const { data, error } = await this.admin.from("profiles").select("*").eq("paystack_customer_id", customerId).maybeSingle<ProfileRow>();
+    if (error) throw new Error(`Find profile failed: ${error.message}`);
+    return data ? toProfile(data) : null;
+  }
+
+  async deleteAccount(userId: string) {
+    // Photos first (storage isn't covered by the database cascade), in pages of 1000.
+    for (;;) {
+      const { data: files, error } = await this.admin.storage.from(BUCKET).list(userId, { limit: 1000 });
+      if (error) throw new Error(`List photos failed: ${error.message}`);
+      if (!files?.length) break;
+      const { error: rmErr } = await this.admin.storage.from(BUCKET).remove(files.map((f) => `${userId}/${f.name}`));
+      if (rmErr) throw new Error(`Delete photos failed: ${rmErr.message}`);
+      if (files.length < 1000) break;
+    }
+    // Deleting the auth user cascades to profiles and user_data.
+    const { error } = await this.admin.auth.admin.deleteUser(userId);
+    if (error) throw new Error(`Delete user failed: ${error.message}`);
   }
 }

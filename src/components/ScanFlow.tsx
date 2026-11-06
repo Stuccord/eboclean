@@ -18,6 +18,7 @@ export function ScanFlow({
   onDemo,
   onExit,
   onPaywall,
+  onNeedLogin,
   onUsed,
 }: {
   room?: Room;
@@ -26,6 +27,7 @@ export function ScanFlow({
   onDemo: (demo: boolean) => void;
   onExit: () => void;
   onPaywall: (reason: "scans") => void;
+  onNeedLogin: () => void;
   onUsed: () => void;
 }) {
   const [stage, setStage] = useState<Stage>("pick");
@@ -71,6 +73,11 @@ export function ScanFlow({
         }),
       });
       const data = await res.json();
+      if (res.status === 401 && data.needLogin) {
+        setStage("pick");
+        onNeedLogin();
+        return;
+      }
       if (res.status === 402 && data.paywall) {
         setStage("pick");
         onPaywall("scans");

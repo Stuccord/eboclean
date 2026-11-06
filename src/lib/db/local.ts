@@ -1,5 +1,5 @@
 import { createHash, randomInt, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AuthCodeError, type AccountBackend, type Profile, type ProfilePatch, type UserData } from "./types";
 
@@ -88,8 +88,11 @@ export class LocalBackend implements AccountBackend {
         trialUsed: false,
         usageScans: 0,
         usageRooms: 0,
+        aiDay: null,
+        aiCount: 0,
       };
-      return { ...db.profiles[userId] };
+      const p = db.profiles[userId];
+      return { ...p, aiDay: p.aiDay ?? null, aiCount: p.aiCount ?? 0 };
     }, true);
   }
 
@@ -129,5 +132,19 @@ export class LocalBackend implements AccountBackend {
     } catch {
       return null;
     }
+  }
+
+  findByPaystackCustomer(customerId: number) {
+    return withDb((db) => Object.values(db.profiles).find((p) => p.paystackCustomerId === customerId) ?? null);
+  }
+
+  async deleteAccount(userId: string) {
+    await withDb((db) => {
+      const email = db.profiles[userId]?.email ?? Object.values(db.users).find((u) => u.id === userId)?.email;
+      delete db.profiles[userId];
+      delete db.data[userId];
+      if (email) delete db.users[email];
+    }, true);
+    await rm(path.join(PHOTO_DIR, safeId(userId)), { recursive: true, force: true });
   }
 }

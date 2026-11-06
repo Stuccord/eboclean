@@ -67,7 +67,23 @@ export function useAccount() {
     setUser(null);
   }, [uid]);
 
-  return { user, backend, loaded, syncing, completeSignIn, signOut };
+  /** Permanently deletes the account on the server, then wipes this device. */
+  const deleteAccount = useCallback(async () => {
+    const res = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: "DELETE" }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) throw new Error(data.error ?? "Couldn't delete your account. Please try again.");
+    await clearDeviceData();
+    try {
+      localStorage.clear();
+    } catch {}
+    setUser(null);
+  }, []);
+
+  return { user, backend, loaded, syncing, completeSignIn, signOut, deleteAccount };
 }
 
 /** Email -> 6-digit code sign-in. No passwords. */
@@ -267,13 +283,18 @@ export function AccountCard({
   syncing,
   onSignIn,
   onSignOut,
+  onDelete,
 }: {
   user: AccountUser | null;
   syncing: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
+  onDelete: () => Promise<void>;
 }) {
   const [confirm, setConfirm] = useState(false);
+  const [deleting, setDeleting] = useState<"closed" | "open" | "busy">("closed");
+  const [typed, setTyped] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   if (!user) {
     return (
       <div className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-950/5">
@@ -311,10 +332,61 @@ export function AccountCard({
             </button>
           </div>
         </div>
+      ) : deleting !== "closed" ? (
+        <div className="mt-3 rounded-2xl bg-rose-50 p-3 text-sm ring-1 ring-rose-100">
+          <p className="font-bold text-rose-700">Delete your account forever?</p>
+          <p className="mt-1 text-neutral-700">
+            This removes your rooms, history, photos and streak from our servers and this device, and cancels any Pro subscription so
+            you won&apos;t be charged again. This can&apos;t be undone.
+          </p>
+          <label className="mt-3 block text-xs font-semibold text-neutral-600">
+            Type DELETE to confirm
+            <input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoCapitalize="characters"
+              className="mt-1 w-full rounded-xl bg-white px-3 py-2 text-base ring-1 ring-neutral-950/10 outline-none focus:ring-2 focus:ring-rose-400"
+            />
+          </label>
+          {deleteError && <p className="mt-2 text-rose-700">{deleteError}</p>}
+          <div className="mt-3 flex gap-2">
+            <button
+              disabled={typed.trim().toUpperCase() !== "DELETE" || deleting === "busy"}
+              onClick={async () => {
+                setDeleting("busy");
+                setDeleteError(null);
+                try {
+                  await onDelete();
+                } catch (err) {
+                  setDeleteError(err instanceof Error ? err.message : "Couldn't delete your account.");
+                  setDeleting("open");
+                }
+              }}
+              className="flex-1 rounded-xl bg-rose-600 py-2 font-bold text-white disabled:opacity-40"
+            >
+              {deleting === "busy" ? "Deleting…" : "Delete forever"}
+            </button>
+            <button
+              onClick={() => {
+                setDeleting("closed");
+                setTyped("");
+                setDeleteError(null);
+              }}
+              className="flex-1 rounded-xl bg-white py-2 font-bold ring-1 ring-neutral-950/10"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       ) : (
-        <button onClick={() => setConfirm(true)} className="mt-3 text-sm font-semibold text-neutral-900/50 hover:text-rose-600">
-          Sign out
-        </button>
+        <div className="mt-3 flex items-center justify-between">
+          <button onClick={() => setConfirm(true)} className="text-sm font-semibold text-neutral-900/50 hover:text-neutral-900">
+            Sign out
+          </button>
+          <button onClick={() => setDeleting("open")} className="text-sm font-semibold text-neutral-900/40 hover:text-rose-600">
+            Delete account
+          </button>
+        </div>
       )}
     </div>
   );

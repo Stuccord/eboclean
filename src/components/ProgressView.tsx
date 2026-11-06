@@ -74,6 +74,16 @@ export function ProgressView({
           </div>
         )}
       </div>
+
+      <p className="pb-2 text-center text-xs text-neutral-500">
+        <a href="/privacy" className="underline">
+          Privacy Policy
+        </a>
+        {" · "}
+        <a href="/terms" className="underline">
+          Terms of Service
+        </a>
+      </p>
     </div>
   );
 }

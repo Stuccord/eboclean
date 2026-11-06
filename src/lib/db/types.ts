@@ -9,6 +9,9 @@ export interface Profile {
   trialUsed: boolean;
   usageScans: number;
   usageRooms: number;
+  /** Daily AI-use counter (UTC day "YYYY-MM-DD"), caps cost even for Pro. */
+  aiDay: string | null;
+  aiCount: number;
 }
 
 export type ProfilePatch = Partial<Omit<Profile, "id" | "email">>;
@@ -32,6 +35,10 @@ export interface AccountBackend {
   putData(userId: string, data: Omit<UserData, "updatedAt">): Promise<number>;
   putPhoto(userId: string, photoId: string, bytes: Buffer, contentType: string): Promise<void>;
   getPhoto(userId: string, photoId: string): Promise<{ bytes: Buffer; contentType: string } | null>;
+  /** Finds the account linked to a Paystack customer (used by the webhook). */
+  findByPaystackCustomer(customerId: number): Promise<Profile | null>;
+  /** Permanently deletes the user, their profile, synced data and photos. */
+  deleteAccount(userId: string): Promise<void>;
 }
 
 export class AuthCodeError extends Error {}

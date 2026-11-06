@@ -3,7 +3,7 @@ import { z } from "zod";
 import { setupRoom } from "@/lib/scan";
 import { demoSetup } from "@/lib/demo";
 import { errorResponse, isDemoMode, MAX_IMAGE_CHARS, parseDataUrl } from "@/lib/apiHelpers";
-import { checkAllowance, PAYWALL_MESSAGE } from "@/lib/billing";
+import { checkAllowance, denyResponse } from "@/lib/billing";
 
 export const maxDuration = 60;
 
@@ -26,9 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   const allowance = await checkAllowance(request, "rooms");
-  if (!allowance.allowed) {
-    return NextResponse.json({ error: PAYWALL_MESSAGE.rooms, paywall: "rooms" }, { status: 402 });
-  }
+  if (!allowance.allowed) return denyResponse(allowance.reason, "rooms");
 
   if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 1500));

@@ -1,4 +1,4 @@
--- Clean Sweep database schema.
+-- Eboclean database schema.
 -- Run this once in your Supabase project: Dashboard -> SQL Editor -> New query -> paste -> Run.
 -- Then create a PRIVATE storage bucket named "photos" (Storage -> New bucket, leave "Public" off).
 
@@ -12,8 +12,15 @@ create table if not exists public.profiles (
   trial_used boolean not null default false,
   usage_scans integer not null default 0,
   usage_rooms integer not null default 0,
+  ai_day text,
+  ai_count integer not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Added later: daily AI-use counter. Safe to run again on an existing database.
+alter table public.profiles add column if not exists ai_day text;
+alter table public.profiles add column if not exists ai_count integer not null default 0;
+create index if not exists profiles_paystack_customer_idx on public.profiles (paystack_customer_id);
 
 -- One row per user: their home (rooms, tasks, history) and progress, synced from the app.
 create table if not exists public.user_data (

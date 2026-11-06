@@ -53,7 +53,7 @@ The scan uses Claude Opus 5.5 (vision + structured JSON output) with low effort 
 ## Payments (Paystack, in US dollars)
 
 **Free plan:** 3 AI scans and 2 rooms. **Pro:** unlimited, **$4.99/month** or **$29.99/year** (USD).
-**Trial:** 7 days of Pro, no card needed (one per browser). After that, users subscribe through Paystack.
+**Trial:** 7 days of Pro, no card needed (one per account). After that, users subscribe through Paystack.
 
 Without Paystack keys the app uses **demo payments** (trial, subscribe and cancel all work; nothing is charged).
 
@@ -96,20 +96,32 @@ To use real accounts with Supabase (free tier is fine):
 - **Apple App Store:** wrap with Capacitor and add native features (camera, push reminders, haptics), so the app isn't rejected as a "website in a wrapper" (guideline 4.2).
 - **Payments in store apps:** Apple and Google generally require their own in-app purchase systems for digital subscriptions sold inside the app (Apple 3.1.1, Google Play Payments policy), so Paystack can't be the checkout inside those apps. Plan: keep Paystack on the web, add store billing (e.g. via RevenueCat) in the store builds, and link both to the same account so Pro works everywhere.
 
+## Protection against abuse and runaway AI costs
+
+- **AI scans need a free account.** Free-plan counts live on the account, so clearing cookies can't reset them.
+- **Daily cap per account** on all AI calls (scans, after-photos, room setups): 10/day free, 40/day Pro (`DAILY_AI_LIMIT` in `src/lib/billing.ts`). Needs the `ai_day`/`ai_count` columns: re-run `supabase/schema.sql` (safe to run again).
+- **Burst limit per IP**: 20 AI requests per 10 minutes per server instance (`src/lib/rateLimit.ts`).
+- Also set a **monthly spend limit** in the Anthropic Console (Settings → Limits) as a final safety net.
+
+## Paystack webhook
+
+`/api/billing/webhook` verifies Paystack's signature, links a payment to the account even if the buyer closed the tab before returning, and refreshes Pro status right away on cancellations and failed renewals. In Paystack → Settings → API Keys & Webhooks, set the **Webhook URL** to `https://eboclean-two.vercel.app/api/billing/webhook` (test and live mode each have their own).
+
+## Account deletion, privacy and terms
+
+- Progress → account card → **Delete account**: cancels any Paystack subscription, deletes photos, synced data, profile and the login (required by Apple, Google and privacy laws).
+- `/privacy` and `/terms` are linked from onboarding, the paywall and Progress. Set `SUPPORT_EMAIL` so the pages show a contact address. They are a solid starting point, not legal advice: have them reviewed, and add your registered business name if you have one.
+
 ## Live deployment (Vercel)
 
-Live at **https://eboclean.vercel.app** (Vercel project `eboclean`).
+Live at **https://eboclean-two.vercel.app** (deploys automatically when you push to `main` on GitHub).
 
-- Redeploy after changes: `npx vercel@latest deploy --prod`
-- `vercel.json` tells Vercel this is a Next.js app; `.vercelignore` keeps `.env*` and `.data/` from being uploaded.
-- Keys are **not** uploaded from `.env.local`. Add them in Vercel → Project `eboclean` → Settings → Environment Variables (Production), then redeploy:
-  `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SECRET`, and `APP_URL=https://eboclean.vercel.app`.
-- In Supabase → Authentication → URL Configuration, set **Site URL** to `https://eboclean.vercel.app`.
+- Keys are **not** in the repository. Add them in Vercel → Project → Settings → Environment Variables (Production), then redeploy:
+  `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SECRET`, `SUPPORT_EMAIL`, and `APP_URL=https://eboclean-two.vercel.app`.
+- In Supabase → Authentication → URL Configuration, set **Site URL** to `https://eboclean-two.vercel.app`.
 
 ## Not built yet (next steps)
 
-- Delete-my-account option (account deletion is important before a public launch)
-- Paystack webhooks (status is checked live today; webhooks would add instant updates and payment-failure emails)
+- Error monitoring (e.g. Sentry) and automated tests for payments and sign-in
 - Real reminder notifications (needs a native app or web push)
 - Household sharing
-- Deploy to the internet (e.g. Vercel)

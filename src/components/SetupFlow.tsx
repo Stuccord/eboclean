@@ -22,6 +22,7 @@ export function SetupFlow({
   onDone,
   onExit,
   onPaywall,
+  onNeedLogin,
   onUsed,
 }: {
   roomsCount: number;
@@ -29,6 +30,7 @@ export function SetupFlow({
   onDone: () => void;
   onExit: () => void;
   onPaywall: (reason: "rooms") => void;
+  onNeedLogin: () => void;
   onUsed: () => void;
 }) {
   const [stage, setStage] = useState<Stage>("pick");
@@ -61,6 +63,11 @@ export function SetupFlow({
         body: JSON.stringify({ image: dataUrl, roomIndex: startCount + added }),
       });
       const data = await res.json();
+      if (res.status === 401 && data.needLogin) {
+        setStage(added > 0 ? "saved" : "pick");
+        onNeedLogin();
+        return;
+      }
       if (res.status === 402 && data.paywall) {
         setStage(added > 0 ? "saved" : "pick");
         onPaywall("rooms");

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { scanRoom, type ScanResult } from "@/lib/scan";
 import { demoResult } from "@/lib/demo";
 import { errorResponse, isDemoMode, MAX_IMAGE_CHARS, parseDataUrl } from "@/lib/apiHelpers";
-import { checkAllowance, PAYWALL_MESSAGE } from "@/lib/billing";
+import { checkAllowance, denyResponse } from "@/lib/billing";
 
 export const maxDuration = 60;
 
@@ -27,17 +27,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "That photo is too large. Try another one." }, { status: 413 });
   }
 
-  // Only "before" scans count toward the free limit; the after photo is part of the same session.
-  const allowance = body.mode === "before" ? await checkAllowance(request, "scans") : null;
-  if (allowance && !allowance.allowed) {
-    return NextResponse.json({ error: PAYWALL_MESSAGE.scans, paywall: "scans" }, { status: 402 });
-  }
+  // Only "before" scans use up a free scan; the after photo still counts toward the daily cap.
+  const kind = body.mode === "before" ? "scans" : null;
+  const allowance = await checkAllowance(request, kind);
+  if (!allowance.allowed) return denyResponse(allowance.reason, kind);
 
   if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 1800));
     const result: ScanResult = demoResult(body.mode, body.previous?.mess_score);
     const res = NextResponse.json({ result, demo: true });
-    await allowance?.record(res);
+    await allowance.record(res);
     return res;
   }
 
@@ -56,7 +55,7 @@ export async function POST(request: NextRequest) {
       previous: body.previous,
     });
     const res = NextResponse.json({ result, demo: false });
-    await allowance?.record(res);
+    await allowance.record(res);
     return res;
   } catch (err) {
     return errorResponse(err);

@@ -144,6 +144,17 @@ export function Onboarding({
             <button onClick={onSignIn} className="w-full py-2 text-sm font-semibold text-neutral-900">
               I already have an account
             </button>
+            <p className="text-center text-xs text-neutral-500">
+              By continuing you agree to our{" "}
+              <a href="/terms" className="underline">
+                Terms
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" className="underline">
+                Privacy Policy
+              </a>
+              .
+            </p>
           </div>
         </div>
       )}

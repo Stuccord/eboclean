@@ -220,7 +220,14 @@ export function Paywall({
           {loading === "pay" ? "Opening secure checkout…" : `Subscribe for ${chosen.price}${chosen.period}`}
         </button>
         <p className="mt-2 text-center text-xs text-neutral-900/50">
-          Charged in US dollars through Paystack. Renews automatically. Cancel anytime.
+          Charged in US dollars through Paystack. Renews automatically. Cancel anytime.{" "}
+          <a href="/terms" target="_blank" className="underline">
+            Terms
+          </a>
+          {" · "}
+          <a href="/privacy" target="_blank" className="underline">
+            Privacy
+          </a>
         </p>
         {demoBilling && (
           <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs text-amber-700 ring-1 ring-amber-200">

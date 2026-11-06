@@ -1,10 +1,15 @@
-import type { NextRequest, NextResponse } from "next/server";
-import { accounts } from "./db";
+import { NextResponse, type NextRequest } from "next/server";
+import { accounts, accountsAvailable } from "./db";
+import { clientIp, rateLimit } from "./rateLimit";
 import { getSession } from "./session";
 import { cookieOpts, sign, verify } from "./signing";
 
 // ---------------- plans & limits ----------------
 export const FREE_LIMITS = { scans: 3, rooms: 2 } as const;
+/** Most AI calls (scans, after-photos, room setups) one account can make per UTC day. Protects your Claude bill. */
+export const DAILY_AI_LIMIT = { free: 10, pro: 40 } as const;
+/** Burst limit per IP address across all AI routes, on top of the per-account limits. */
+const IP_LIMIT = { max: 20, windowMs: 10 * 60_000 };
 export const TRIAL_DAYS = 7;
 const DAY_MS = 86_400_000;
 
@@ -95,6 +100,8 @@ export interface BillingState {
   trialEndsAt: number | null;
   trialUsed: boolean;
   usage: Usage;
+  aiDay: string | null;
+  aiCount: number;
 }
 
 export type BillingPatch = Partial<Pick<BillingState, "customerId" | "customerCode" | "trialEndsAt" | "trialUsed" | "usage">>;
@@ -119,6 +126,8 @@ export async function loadBilling(req: NextRequest): Promise<BillingState> {
       trialEndsAt: p.trialEndsAt,
       trialUsed: p.trialUsed,
       usage: { scans: p.usageScans, rooms: p.usageRooms },
+      aiDay: p.aiDay,
+      aiCount: p.aiCount,
     };
   }
   const { billing, usage } = readAnon(req);
@@ -130,6 +139,8 @@ export async function loadBilling(req: NextRequest): Promise<BillingState> {
     trialEndsAt: billing.trialEndsAt ?? null,
     trialUsed: Boolean(billing.trialUsed),
     usage,
+    aiDay: null,
+    aiCount: 0,
   };
 }
 
@@ -206,12 +217,27 @@ export function forgetStatus(customerId: number | null | undefined) {
   if (customerId) statusCache.delete(customerId);
 }
 
+export type DenyReason = "login" | "paywall" | "daily" | "busy";
+
+function utcDay(now = Date.now()) {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
 /**
- * Free-plan gate for AI features. Returns whether the request may proceed and a
- * function that records the use (only counted for free users).
+ * Gate for every AI call. `kind` is the free-plan counter it uses ("scans" / "rooms"),
+ * or null for calls that only count toward the daily cap (the "after" photo of a scan).
+ *
+ * - Signed-out users must create a free account first (free counts can't be reset by clearing cookies).
+ * - Free users get FREE_LIMITS in total; everyone has a per-day cap and a per-IP burst limit.
  */
-export async function checkAllowance(req: NextRequest, kind: keyof Usage) {
+export async function checkAllowance(req: NextRequest, kind: keyof Usage | null) {
+  const deny = (reason: DenyReason) => ({ allowed: false as const, reason, pro: false, async record() {} });
+
+  if (!rateLimit(`ai:${clientIp(req)}`, IP_LIMIT.max, IP_LIMIT.windowMs)) return deny("busy");
+
   const state = await loadBilling(req);
+  if (!state.userId && accountsAvailable()) return deny("login");
+
   let pro = trialActive(state);
   if (!pro) {
     try {
@@ -222,14 +248,45 @@ export async function checkAllowance(req: NextRequest, kind: keyof Usage) {
       pro = Boolean(state.customerId);
     }
   }
-  const allowed = pro || state.usage[kind] < FREE_LIMITS[kind];
+  if (kind && !pro && state.usage[kind] >= FREE_LIMITS[kind]) return { ...deny("paywall"), pro };
+
+  const today = utcDay();
+  const usedToday = state.aiDay === today ? state.aiCount : 0;
+  if (state.userId && usedToday >= (pro ? DAILY_AI_LIMIT.pro : DAILY_AI_LIMIT.free)) return { ...deny("daily"), pro };
+
   return {
-    allowed,
+    allowed: true as const,
+    reason: null,
     pro,
     async record(res: NextResponse) {
-      if (!pro) await saveBilling(res, state, { usage: { ...state.usage, [kind]: state.usage[kind] + 1 } });
+      if (kind && !pro) await saveBilling(res, state, { usage: { ...state.usage, [kind]: state.usage[kind] + 1 } });
+      if (state.userId) {
+        try {
+          await accounts().updateProfile(state.userId, { aiDay: today, aiCount: usedToday + 1 });
+        } catch (err) {
+          // Missing ai_day/ai_count columns (run supabase/schema.sql) shouldn't break scanning.
+          console.error("Daily AI counter update failed", err);
+        }
+      }
     },
   };
+}
+
+/** The JSON error response for a denied AI call. */
+export function denyResponse(reason: DenyReason, kind: keyof Usage | null) {
+  switch (reason) {
+    case "login":
+      return NextResponse.json(
+        { error: "Create a free account to scan. It takes 20 seconds and keeps your rooms safe.", needLogin: true },
+        { status: 401 },
+      );
+    case "paywall":
+      return NextResponse.json({ error: PAYWALL_MESSAGE[kind ?? "scans"], paywall: kind ?? "scans" }, { status: 402 });
+    case "daily":
+      return NextResponse.json({ error: "You've reached today's scan limit. It resets at midnight (UTC)." }, { status: 429 });
+    case "busy":
+      return NextResponse.json({ error: "Too many scans in a short time. Please wait a few minutes." }, { status: 429 });
+  }
 }
 
 export const PAYWALL_MESSAGE: Record<keyof Usage, string> = {

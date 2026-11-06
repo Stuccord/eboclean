@@ -40,6 +40,11 @@ export default function Home() {
   const [auth, setAuth] = useState<{ title?: string; subtitle?: string; then?: PaywallReason } | null>(null);
 
   const goTab = (tab: Tab) => setView({ kind: "tab", tab });
+  const askToSignUpForScan = () =>
+    setAuth({
+      title: "Create your free account",
+      subtitle: "AI scans need a free account. Your free scans, rooms and streak are saved to it.",
+    });
 
   // Home-screen shortcuts (long-press the app icon): ?action=sos or ?action=scan
   const handledAction = useRef(false);
@@ -154,6 +159,10 @@ export default function Home() {
                     billing.setNotice("signed-out");
                     goTab("today");
                   }}
+                  onDelete={async () => {
+                    await account.deleteAccount();
+                    window.location.replace("/");
+                  }}
                 />
               ) : null
             }
@@ -165,11 +174,12 @@ export default function Home() {
             energy={energy}
             onDemo={setDemo}
             onPaywall={setPaywall}
+            onNeedLogin={askToSignUpForScan}
             onUsed={billing.refresh}
             onExit={() => (view.roomId ? setView({ kind: "room", roomId: view.roomId }) : goTab("today"))}
           />
         ) : view.kind === "setup" ? (
-          <SetupFlow roomsCount={data.rooms.length} onDemo={setDemo} onPaywall={setPaywall} onUsed={billing.refresh} onDone={() => goTab("today")} onExit={() => goTab(data.rooms.length ? "rooms" : "today")} />
+          <SetupFlow roomsCount={data.rooms.length} onDemo={setDemo} onPaywall={setPaywall} onNeedLogin={askToSignUpForScan} onUsed={billing.refresh} onDone={() => goTab("today")} onExit={() => goTab(data.rooms.length ? "rooms" : "today")} />
         ) : view.kind === "room" ? (
           (() => {
             const room = data.rooms.find((r) => r.id === view.roomId);
