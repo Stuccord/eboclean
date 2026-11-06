@@ -82,6 +82,20 @@ To use real accounts with Supabase (free tier is fine):
 5. Authentication → Providers → Email: enabled. For real users, set up custom SMTP (Supabase's built-in email is rate-limited and meant for testing).
 6. Project Settings → API: copy the URL, anon key and service role key into `.env.local` (see `.env.example`). Keep the service role key secret.
 
+## PWA (installable app) and app-store readiness
+
+- `src/app/manifest.ts`: name, colors, standalone display, icons (normal + maskable), shortcuts (SOS, Scan).
+- `public/sw.js`: service worker (production only). Pages network-first with offline fallback to the cached app; build assets cache-first; `/api/*` never cached. Bump `VERSION` to force-clear old caches.
+- `public/offline.html`: shown if the app was never loaded and the device is offline.
+- iPhone: `appleWebApp` metadata + `src/app/apple-icon.png`; layout uses safe-area insets (`viewport-fit=cover`).
+- Install prompts: `src/components/Pwa.tsx` (Android/desktop "Install app" button, iPhone "Add to Home Screen" steps).
+- Icons: regenerate everything from the logo with `node scripts/generate-icons.mjs`. Store icons are in `store-assets/` (512 for Google Play, 1024 for the App Store, no transparency).
+
+### Shipping to the stores (later)
+- **Google Play:** wrap the PWA as a Trusted Web Activity (PWABuilder or Bubblewrap). You'll add `public/.well-known/assetlinks.json` with the app's signing-key fingerprint from Play Console.
+- **Apple App Store:** wrap with Capacitor and add native features (camera, push reminders, haptics), so the app isn't rejected as a "website in a wrapper" (guideline 4.2).
+- **Payments in store apps:** Apple and Google generally require their own in-app purchase systems for digital subscriptions sold inside the app (Apple 3.1.1, Google Play Payments policy), so Paystack can't be the checkout inside those apps. Plan: keep Paystack on the web, add store billing (e.g. via RevenueCat) in the store builds, and link both to the same account so Pro works everywhere.
+
 ## Live deployment (Vercel)
 
 Live at **https://eboclean.vercel.app** (Vercel project `eboclean`).

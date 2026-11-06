@@ -160,7 +160,7 @@ export function AuthSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-indigo-950/40 sm:items-center" role="dialog" aria-modal="true" aria-label="Sign in">
-      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
+      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
         <div className="flex justify-end">
           <button onClick={onClose} className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold text-indigo-900/60" aria-label="Close">
             ✕

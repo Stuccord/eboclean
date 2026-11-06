@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { currentStreak, loadProgress, onRestDay, recordMission, serverProgress, subscribeProgress } from "@/lib/progress";
 import { markTasksDone, type PlannedStep } from "@/lib/store";
 import { AccountCard, AuthSheet, useAccount } from "@/components/Account";
@@ -10,7 +10,7 @@ import { ProgressView } from "@/components/ProgressView";
 import { RoomDetail, RoomsView } from "@/components/RoomsView";
 import { ScanFlow } from "@/components/ScanFlow";
 import { SetupFlow } from "@/components/SetupFlow";
-import { TodayView } from "@/components/TodayView";
+import { sosTask, TodayView } from "@/components/TodayView";
 import { LogoMark, Wordmark } from "@/components/Logo";
 import { Onboarding } from "@/components/Onboarding";
 import { loadPrefs, serverPrefs, subscribePrefs } from "@/lib/prefs";
@@ -40,15 +40,33 @@ export default function Home() {
   const [auth, setAuth] = useState<{ title?: string; subtitle?: string; then?: PaywallReason } | null>(null);
 
   const goTab = (tab: Tab) => setView({ kind: "tab", tab });
+
+  // Home-screen shortcuts (long-press the app icon): ?action=sos or ?action=scan
+  const handledAction = useRef(false);
+  useEffect(() => {
+    if (!data.loaded || handledAction.current) return;
+    handledAction.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    if (!action && !params.get("source")) return;
+    window.history.replaceState(null, "", "/");
+    Promise.resolve().then(() => {
+      if (action === "scan") setView({ kind: "scan" });
+      if (action === "sos") {
+        const t = sosTask(data.rooms, Date.now());
+        if (t) setView({ kind: "daily", steps: [t], companion: true });
+      }
+    });
+  }, [data.loaded, data.rooms]);
   // Keeps onboarding on screen until the user finishes it (rooms get created mid-way).
   const [onboarding, setOnboarding] = useState(false);
   const isNewUser = data.loaded && ((data.rooms.length === 0 && data.history.length === 0) || onboarding);
 
   return (
     <main className="min-h-dvh text-indigo-950">
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-32 pt-2">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-[max(1.25rem,env(safe-area-inset-left))] pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]">
         {!(view.kind === "tab" && isNewUser) && (
-        <header className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between bg-[#f4f5fb]/90 px-5 pb-3 pt-3 backdrop-blur-md">
+        <header className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between bg-[#f4f5fb]/90 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md">
           <button onClick={() => goTab("today")} className="flex items-center gap-2 whitespace-nowrap text-lg" aria-label="Eboclean home">
             <LogoMark size={36} className="shadow-sm shadow-violet-600/30 rounded-[10px]" />
             <Wordmark className="hidden text-xl min-[400px]:inline" />

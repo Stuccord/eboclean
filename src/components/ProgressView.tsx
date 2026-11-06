@@ -2,6 +2,7 @@
 
 import { currentStreak, type Progress } from "@/lib/progress";
 import { PlanCard, type BillingStatus } from "./Billing";
+import { InstallCard } from "./Pwa";
 import { TimelineEntry } from "./RoomsView";
 import { Card, Stat, type HomeData } from "./ui";
 
@@ -58,6 +59,7 @@ export function ProgressView({
       </div>
 
       {accountCard}
+      <InstallCard />
       <PlanCard status={billing} onUpgrade={onUpgrade} />
 
       <div>

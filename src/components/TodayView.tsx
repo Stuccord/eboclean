@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { recordTask } from "@/lib/progress";
 import { buildDailyPlan, effortPoints, markTasksDone, roomFreshness, taskNeed, type PlannedStep, type Room } from "@/lib/store";
+import { InstallCard } from "./Pwa";
 import { SpinPicker } from "./SpinPicker";
 import { Card, Chip, FreshnessRing, PrimaryButton, TaskRow, type Energy, type HomeData } from "./ui";
 
@@ -14,7 +15,7 @@ const ENERGY_OPTIONS: { value: Energy; label: string }[] = [
 ];
 
 /** SOS: the single tiniest, most useful task in the whole home. */
-function sosTask(rooms: Room[], now: number): PlannedStep | null {
+export function sosTask(rooms: Room[], now: number): PlannedStep | null {
   const all = rooms.flatMap((room) => room.tasks.map((task) => ({ room, task, need: taskNeed(task, now) })));
   if (all.length === 0) return null;
   const pool = all.filter((c) => c.need >= 0.5);
@@ -87,6 +88,8 @@ export function TodayView({
         <p className="text-sm font-semibold text-indigo-900/50">{greeting} 👋</p>
         <h1 className="text-3xl font-black">Your home today</h1>
       </div>
+
+      <InstallCard compact />
 
       {restDay && (
         <p className="rounded-2xl bg-sky-50 px-4 py-3 text-sm text-sky-800 ring-1 ring-sky-100">
