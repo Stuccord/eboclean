@@ -138,6 +138,17 @@ export class SupabaseBackend implements AccountBackend {
     return data ? toProfile(data) : null;
   }
 
+  async claimTrial(userId: string) {
+    const { data, error } = await this.admin
+      .from("profiles")
+      .update({ trial_used: true })
+      .eq("id", userId)
+      .eq("trial_used", false)
+      .select("id");
+    if (error) throw new Error(`Claim trial failed: ${error.message}`);
+    return (data?.length ?? 0) > 0;
+  }
+
   async deleteAccount(userId: string) {
     // Photos first (storage isn't covered by the database cascade), in pages of 1000.
     for (;;) {

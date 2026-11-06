@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { currentStreak, loadProgress, onRestDay, recordMission, serverProgress, subscribeProgress } from "@/lib/progress";
 import { markTasksDone, type PlannedStep } from "@/lib/store";
 import { AccountCard, AuthSheet, useAccount } from "@/components/Account";
-import { CheckoutToast, Paywall, useBilling, type PaywallReason } from "@/components/Billing";
+import { AccessGate, CheckoutToast, useBilling } from "@/components/Billing";
 import { MissionRunner, type MissionOutcome } from "@/components/MissionRunner";
 import { ProgressView } from "@/components/ProgressView";
 import { RoomDetail, RoomsView } from "@/components/RoomsView";
@@ -35,15 +35,14 @@ export default function Home() {
   const [energy, setEnergy] = useState<Energy>("medium");
   const [demo, setDemo] = useState(false);
   const billing = useBilling();
-  const [paywall, setPaywall] = useState<PaywallReason | null>(null);
   const account = useAccount();
-  const [auth, setAuth] = useState<{ title?: string; subtitle?: string; then?: PaywallReason } | null>(null);
+  const [auth, setAuth] = useState<{ title?: string; subtitle?: string } | null>(null);
 
   const goTab = (tab: Tab) => setView({ kind: "tab", tab });
   const askToSignUpForScan = () =>
     setAuth({
-      title: "Create your free account",
-      subtitle: "AI scans need a free account. Your free scans, rooms and streak are saved to it.",
+      title: "Create your account",
+      subtitle: "Sign in to scan. Your rooms and streak are saved to your account.",
     });
 
   // Home-screen shortcuts (long-press the app icon): ?action=sos or ?action=scan
@@ -66,27 +65,27 @@ export default function Home() {
   // Keeps onboarding on screen until the user finishes it (rooms get created mid-way).
   const [onboarding, setOnboarding] = useState(false);
   const isNewUser = data.loaded && ((data.rooms.length === 0 && data.history.length === 0) || onboarding);
+  // Nothing is free: outside onboarding, the app needs an account with an active trial or subscription.
+  const accessKnown = account.loaded && billing.status !== null;
+  const entitled = accessKnown && Boolean(account.user && billing.status?.pro);
+  const locked = data.loaded && !(view.kind === "tab" && isNewUser) && !entitled;
 
   return (
     <main className="min-h-dvh text-neutral-950">
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-[max(1.25rem,env(safe-area-inset-left))] pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]">
-        {!(view.kind === "tab" && isNewUser) && (
+        {!(view.kind === "tab" && isNewUser) && !locked && (
         <header className="sticky top-0 z-30 -mx-5 mb-3 flex items-center justify-between bg-[#f7f7f8]/90 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md">
           <button onClick={() => goTab("today")} className="flex items-center gap-2 whitespace-nowrap text-lg" aria-label="Eboclean home">
             <LogoMark size={36} className="shadow-sm shadow-black/15 rounded-[10px]" />
             <Wordmark className="hidden text-xl min-[400px]:inline" />
           </button>
           <div className="flex gap-1.5 text-sm font-bold">
-            {billing.status?.subscribed ? (
-              <span className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold leading-5 text-white">PRO</span>
-            ) : billing.status?.onTrial ? (
-              <button onClick={() => setPaywall("upgrade")} className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold leading-5 text-neutral-900">
+            {billing.status?.onTrial ? (
+              <button onClick={() => goTab("progress")} className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold leading-5 text-neutral-900">
                 TRIAL
               </button>
-            ) : billing.status ? (
-              <button onClick={() => setPaywall("upgrade")} className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold leading-5 text-white hover:bg-black">
-                ✨ Pro
-              </button>
+            ) : billing.status?.subscribed ? (
+              <span className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold leading-5 text-white">PRO</span>
             ) : null}
             <span className="rounded-full bg-white px-3 py-1 text-neutral-900 shadow-sm ring-1 ring-black/5" title="Day streak">
               🔥 {currentStreak(progress)}
@@ -127,6 +126,21 @@ export default function Home() {
               setView({ kind: "setup" });
             }}
           />
+        ) : locked ? (
+          accessKnown ? (
+            <AccessGate
+              email={account.user?.email ?? null}
+              status={billing.status}
+              onSignUp={() => setAuth({ title: "Create your account", subtitle: "Enter your email and we'll send you a 6-digit code. No password needed." })}
+              onSignOut={async () => {
+                await account.signOut();
+                await billing.refresh();
+              }}
+              onRestore={billing.refresh}
+            />
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-neutral-900/50">Loading…</div>
+          )
         ) : view.kind === "tab" && view.tab === "today" ? (
           <TodayView
             data={data}
@@ -146,7 +160,6 @@ export default function Home() {
             data={data}
             progress={progress}
             billing={billing.status}
-            onUpgrade={() => setPaywall("upgrade")}
             accountCard={
               account.loaded ? (
                 <AccountCard
@@ -173,13 +186,13 @@ export default function Home() {
             timeBudget={timeBudget}
             energy={energy}
             onDemo={setDemo}
-            onPaywall={setPaywall}
+            onPaywall={() => billing.refresh()}
             onNeedLogin={askToSignUpForScan}
             onUsed={billing.refresh}
             onExit={() => (view.roomId ? setView({ kind: "room", roomId: view.roomId }) : goTab("today"))}
           />
         ) : view.kind === "setup" ? (
-          <SetupFlow roomsCount={data.rooms.length} onDemo={setDemo} onPaywall={setPaywall} onNeedLogin={askToSignUpForScan} onUsed={billing.refresh} onDone={() => goTab("today")} onExit={() => goTab(data.rooms.length ? "rooms" : "today")} />
+          <SetupFlow roomsCount={data.rooms.length} onDemo={setDemo} onPaywall={() => billing.refresh()} onNeedLogin={askToSignUpForScan} onUsed={billing.refresh} onDone={() => goTab("today")} onExit={() => goTab(data.rooms.length ? "rooms" : "today")} />
         ) : view.kind === "room" ? (
           (() => {
             const room = data.rooms.find((r) => r.id === view.roomId);
@@ -217,31 +230,6 @@ export default function Home() {
         )}
       </div>
 
-      {paywall && (
-        <Paywall
-          reason={paywall}
-          status={billing.status}
-          onClose={() => setPaywall(null)}
-          onTrialStarted={() => {
-            setPaywall(null);
-            billing.refresh();
-            billing.setNotice("trial-started");
-          }}
-          onNeedLogin={(purpose) => {
-            const reason = paywall;
-            setPaywall(null);
-            setAuth({
-              title: purpose === "trial" ? "Create your free account" : "Sign in to subscribe",
-              subtitle:
-                purpose === "trial"
-                  ? "Your trial and progress are saved to your account, so they work on every device."
-                  : "Your subscription is linked to your account, so Pro works on every device.",
-              then: reason,
-            });
-          }}
-        />
-      )}
-
       {auth && (
         <AuthSheet
           title={auth.title}
@@ -250,15 +238,13 @@ export default function Home() {
           onSignedIn={async (user) => {
             const result = await account.completeSignIn(user);
             await billing.refresh();
-            const then = auth.then;
             setAuth(null);
             billing.setNotice(result === "downloaded" ? "signed-in-restored" : "signed-in-saved");
-            if (then) setPaywall(then);
           }}
         />
       )}
 
-      {(view.kind === "tab" || view.kind === "room") && !isNewUser && data.loaded && (
+      {(view.kind === "tab" || view.kind === "room") && !isNewUser && !locked && data.loaded && (
         <TabBar tab={view.kind === "tab" ? view.tab : "rooms"} onTab={goTab} onScan={() => setView({ kind: "scan" })} />
       )}
     </main>

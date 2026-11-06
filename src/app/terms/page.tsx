@@ -17,10 +17,17 @@ export default function TermsPage() {
         responsible for activity in your account. You can delete it anytime in the app.
       </p>
 
-      <H2>Free plan, trial and Eboclean Pro</H2>
+      <H2>Free trial and Eboclean Pro</H2>
       <Bullets>
-        <li>The free plan includes a limited number of AI scans and AI-set-up rooms.</li>
-        <li>New accounts can try Pro free for 7 days with no card. One trial per person.</li>
+        <li>Eboclean needs an account and an active free trial or subscription. There is no free plan.</li>
+        <li>
+          New accounts get a 7-day free trial. You add a card to start it; Paystack makes a small card check that is refunded right
+          away. One trial per person.
+        </li>
+        <li>
+          <b>When the trial ends, your card is charged automatically</b> for the plan you chose, unless you cancel before the trial
+          ends. You can cancel anytime from Progress → Manage or cancel subscription.
+        </li>
         <li>
           Pro is a subscription billed monthly or yearly through Paystack at the price shown before you pay. It{" "}
           <b>renews automatically</b> until you cancel.

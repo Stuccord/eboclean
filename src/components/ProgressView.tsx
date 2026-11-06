@@ -19,13 +19,11 @@ export function ProgressView({
   data,
   progress,
   billing,
-  onUpgrade,
   accountCard,
 }: {
   data: HomeData;
   progress: Progress;
   billing: BillingStatus | null;
-  onUpgrade: () => void;
   accountCard?: React.ReactNode;
 }) {
   const entries = [...data.history].sort((a, b) => b.date - a.date);
@@ -60,7 +58,7 @@ export function ProgressView({
 
       {accountCard}
       <InstallCard />
-      <PlanCard status={billing} onUpgrade={onUpgrade} />
+      <PlanCard status={billing} />
 
       <div>
         <h2 className="font-bold">Glow-up timeline</h2>

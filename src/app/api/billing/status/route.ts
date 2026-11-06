@@ -1,5 +1,5 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
-import { FREE_LIMITS, isDemoBilling, isSubscribed, loadBilling, trialActive } from "@/lib/billing";
+import { isDemoBilling, isSubscribed, loadBilling, trialActive } from "@/lib/billing";
 
 export async function GET(req: NextRequest) {
   await connection(); // always per-request (reads cookies); never prerendered
@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
     console.error("Subscription check failed", err);
     subscribed = Boolean(state.customerId);
   }
-  const onTrial = !subscribed && trialActive(state);
+  // A card trial is also a (scheduled) subscription, so "onTrial" can be true alongside "subscribed".
+  const onTrial = trialActive(state);
   return NextResponse.json({
     pro: subscribed || onTrial,
     subscribed,
@@ -27,8 +28,7 @@ export async function GET(req: NextRequest) {
     signedIn: Boolean(state.userId),
     email: state.email,
     demoBilling: isDemoBilling(),
+    trialEndsAt: onTrial ? state.trialEndsAt : null,
     canManage: subscribed,
-    usage: state.usage,
-    limits: FREE_LIMITS,
   });
 }

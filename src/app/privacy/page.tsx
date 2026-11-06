@@ -60,7 +60,7 @@ export default function PrivacyPage() {
 
       <H2>Cookies and device storage</H2>
       <p>
-        We only use essential cookies: to keep you signed in and to remember your plan and free-scan usage. Your rooms, tasks and photos
+        We only use essential cookies: to keep you signed in and to remember your plan. Your rooms, tasks and photos
         are also stored on your device so the app works offline. No advertising or tracking cookies.
       </p>
 
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
           <b>Delete your account</b> anytime in the app: Progress → your account → Delete account. This also cancels any active
           subscription.
         </li>
-        <li>Use the app without an account for its offline features. AI scans need a free account.</li>
+        <li>Cancel your trial or subscription anytime from Progress → Manage or cancel subscription.</li>
         <li>
           Ask us for a copy of your data, a correction or deletion. Depending on where you live (for example under Ghana&apos;s Data
           Protection Act, the GDPR or US state laws) you may have more rights, including complaining to your data protection authority.

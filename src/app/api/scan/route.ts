@@ -27,16 +27,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "That photo is too large. Try another one." }, { status: 413 });
   }
 
-  // Only "before" scans use up a free scan; the after photo still counts toward the daily cap.
-  const kind = body.mode === "before" ? "scans" : null;
-  const allowance = await checkAllowance(request, kind);
-  if (!allowance.allowed) return denyResponse(allowance.reason, kind);
+  const allowance = await checkAllowance(request);
+  if (!allowance.allowed) return denyResponse(allowance.reason);
 
   if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 1800));
     const result: ScanResult = demoResult(body.mode, body.previous?.mess_score);
     const res = NextResponse.json({ result, demo: true });
-    await allowance.record(res);
+    await allowance.record();
     return res;
   }
 
@@ -55,7 +53,7 @@ export async function POST(request: NextRequest) {
       previous: body.previous,
     });
     const res = NextResponse.json({ result, demo: false });
-    await allowance.record(res);
+    await allowance.record();
     return res;
   } catch (err) {
     return errorResponse(err);

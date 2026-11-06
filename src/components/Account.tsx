@@ -218,7 +218,7 @@ export function AuthSheet({
             >
               {busy ? "Sending…" : "Send my code"}
             </button>
-            <p className="mt-2 text-center text-xs text-neutral-900/50">No password needed. New here? This creates your free account.</p>
+            <p className="mt-2 text-center text-xs text-neutral-900/50">No password needed. New here? This creates your account.</p>
           </form>
         ) : (
           <form

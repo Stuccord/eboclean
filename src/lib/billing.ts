@@ -1,13 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { accounts, accountsAvailable } from "./db";
+import { accounts } from "./db";
 import { clientIp, rateLimit } from "./rateLimit";
 import { getSession } from "./session";
 import { cookieOpts, sign, verify } from "./signing";
 
 // ---------------- plans & limits ----------------
-export const FREE_LIMITS = { scans: 3, rooms: 2 } as const;
 /** Most AI calls (scans, after-photos, room setups) one account can make per UTC day. Protects your Claude bill. */
-export const DAILY_AI_LIMIT = { free: 10, pro: 40 } as const;
+export const DAILY_AI_LIMIT = 40;
+/**
+ * Card check at trial start, in the smallest currency unit (100 = 1.00). Paystack needs a real
+ * charge to save a reusable card; it is refunded right away.
+ */
+export const TRIAL_CARD_CHECK = 100;
 /** Burst limit per IP address across all AI routes, on top of the per-account limits. */
 const IP_LIMIT = { max: 20, windowMs: 10 * 60_000 };
 export const TRIAL_DAYS = 7;
@@ -65,14 +69,19 @@ export interface PaystackSubscription {
   next_payment_date: string | null;
 }
 
-/** Active, or cancelled but still paid up until the period ends. */
-function isLiveSubscription(s: PaystackSubscription) {
-  return s.status === "active" || s.status === "non-renewing";
+/**
+ * Active, or cancelled but still paid up until the period ends. A trial that was cancelled before
+ * its first charge is "non-renewing" with a next payment date at the trial's end, so it stops
+ * counting as soon as that date passes.
+ */
+function isLiveSubscription(s: PaystackSubscription, now = Date.now()) {
+  if (s.status === "active") return true;
+  return s.status === "non-renewing" && Boolean(s.next_payment_date) && Date.parse(s.next_payment_date!) > now;
 }
 
 export async function liveSubscription(customerId: number): Promise<PaystackSubscription | null> {
   const subs = await paystack<PaystackSubscription[]>(`/subscription?customer=${customerId}&perPage=20`);
-  return subs.find(isLiveSubscription) ?? null;
+  return subs.find((s) => isLiveSubscription(s)) ?? null;
 }
 
 // ---------------- billing state: account (signed in) or cookies (signed out) ----------------
@@ -224,19 +233,16 @@ function utcDay(now = Date.now()) {
 }
 
 /**
- * Gate for every AI call. `kind` is the free-plan counter it uses ("scans" / "rooms"),
- * or null for calls that only count toward the daily cap (the "after" photo of a scan).
- *
- * - Signed-out users must create a free account first (free counts can't be reset by clearing cookies).
- * - Free users get FREE_LIMITS in total; everyone has a per-day cap and a per-IP burst limit.
+ * Gate for every AI call. Nothing is free: you need an account with an active trial or
+ * subscription. On top of that there is a per-account daily cap and a per-IP burst limit.
  */
-export async function checkAllowance(req: NextRequest, kind: keyof Usage | null) {
-  const deny = (reason: DenyReason) => ({ allowed: false as const, reason, pro: false, async record() {} });
+export async function checkAllowance(req: NextRequest) {
+  const deny = (reason: DenyReason) => ({ allowed: false as const, reason, async record() {} });
 
   if (!rateLimit(`ai:${clientIp(req)}`, IP_LIMIT.max, IP_LIMIT.windowMs)) return deny("busy");
 
   const state = await loadBilling(req);
-  if (!state.userId && accountsAvailable()) return deny("login");
+  if (!state.userId) return deny("login");
 
   let pro = trialActive(state);
   if (!pro) {
@@ -248,40 +254,34 @@ export async function checkAllowance(req: NextRequest, kind: keyof Usage | null)
       pro = Boolean(state.customerId);
     }
   }
-  if (kind && !pro && state.usage[kind] >= FREE_LIMITS[kind]) return { ...deny("paywall"), pro };
+  if (!pro) return deny("paywall");
 
   const today = utcDay();
   const usedToday = state.aiDay === today ? state.aiCount : 0;
-  if (state.userId && usedToday >= (pro ? DAILY_AI_LIMIT.pro : DAILY_AI_LIMIT.free)) return { ...deny("daily"), pro };
+  if (usedToday >= DAILY_AI_LIMIT) return deny("daily");
 
+  const userId = state.userId;
   return {
     allowed: true as const,
     reason: null,
-    pro,
-    async record(res: NextResponse) {
-      if (kind && !pro) await saveBilling(res, state, { usage: { ...state.usage, [kind]: state.usage[kind] + 1 } });
-      if (state.userId) {
-        try {
-          await accounts().updateProfile(state.userId, { aiDay: today, aiCount: usedToday + 1 });
-        } catch (err) {
-          // Missing ai_day/ai_count columns (run supabase/schema.sql) shouldn't break scanning.
-          console.error("Daily AI counter update failed", err);
-        }
+    async record() {
+      try {
+        await accounts().updateProfile(userId, { aiDay: today, aiCount: usedToday + 1 });
+      } catch (err) {
+        // Missing ai_day/ai_count columns (run supabase/schema.sql) shouldn't break scanning.
+        console.error("Daily AI counter update failed", err);
       }
     },
   };
 }
 
 /** The JSON error response for a denied AI call. */
-export function denyResponse(reason: DenyReason, kind: keyof Usage | null) {
+export function denyResponse(reason: DenyReason) {
   switch (reason) {
     case "login":
-      return NextResponse.json(
-        { error: "Create a free account to scan. It takes 20 seconds and keeps your rooms safe.", needLogin: true },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Please sign in to use Eboclean.", needLogin: true }, { status: 401 });
     case "paywall":
-      return NextResponse.json({ error: PAYWALL_MESSAGE[kind ?? "scans"], paywall: kind ?? "scans" }, { status: 402 });
+      return NextResponse.json({ error: "Start your free trial or subscribe to keep scanning.", paywall: true }, { status: 402 });
     case "daily":
       return NextResponse.json({ error: "You've reached today's scan limit. It resets at midnight (UTC)." }, { status: 429 });
     case "busy":
@@ -289,10 +289,64 @@ export function denyResponse(reason: DenyReason, kind: keyof Usage | null) {
   }
 }
 
-export const PAYWALL_MESSAGE: Record<keyof Usage, string> = {
-  scans: `You've used your ${FREE_LIMITS.scans} free scans. Go Pro for unlimited scans.`,
-  rooms: `The free plan includes ${FREE_LIMITS.rooms} rooms. Go Pro to map your whole home.`,
-};
+// ---------------- card-upfront free trial ----------------
+
+/** Plan code configured for a plan, or null if missing. */
+export function planCode(plan: PlanId) {
+  return process.env[PLANS[plan].env] || null;
+}
+
+/**
+ * Turns a successful card-check payment into a free trial: subscribes the customer to the plan
+ * with the first charge TRIAL_DAYS from now, records the trial, and refunds the card check.
+ * Safe to call twice (success redirect and webhook): only the first call does the work.
+ */
+export async function activateCardTrial(opts: {
+  userId: string;
+  email: string;
+  plan: PlanId;
+  reference: string;
+  customerId: number;
+  customerCode: string;
+  authorizationCode: string;
+}): Promise<"started" | "already"> {
+  const db = accounts();
+  await db.getProfile(opts.userId, opts.email); // make sure the profile row exists
+  if (!(await db.claimTrial(opts.userId))) return "already";
+
+  const code = planCode(opts.plan);
+  const endsAt = trialEnd();
+  try {
+    if (!code) throw new Error(`Missing ${PLANS[opts.plan].env}`);
+    await paystack("/subscription", {
+      method: "POST",
+      body: {
+        customer: opts.customerCode,
+        plan: code,
+        authorization: opts.authorizationCode,
+        start_date: new Date(endsAt).toISOString(),
+      },
+    });
+    await db.updateProfile(opts.userId, {
+      paystackCustomerId: opts.customerId,
+      paystackCustomerCode: opts.customerCode,
+      trialUsed: true,
+      trialEndsAt: endsAt,
+    });
+    forgetStatus(opts.customerId);
+  } catch (err) {
+    // Give the trial back so the user can try again.
+    await db.updateProfile(opts.userId, { trialUsed: false, trialEndsAt: null }).catch(() => undefined);
+    throw err;
+  }
+
+  try {
+    await paystack("/refund", { method: "POST", body: { transaction: opts.reference } });
+  } catch (err) {
+    console.error("Refunding the trial card check failed (refund it in the Paystack dashboard)", opts.reference, err);
+  }
+  return "started";
+}
 
 export function originOf(req: NextRequest) {
   return process.env.APP_URL ?? req.nextUrl.origin;

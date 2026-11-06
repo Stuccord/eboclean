@@ -25,13 +25,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "That photo is too large. Try another one." }, { status: 413 });
   }
 
-  const allowance = await checkAllowance(request, "rooms");
-  if (!allowance.allowed) return denyResponse(allowance.reason, "rooms");
+  const allowance = await checkAllowance(request);
+  if (!allowance.allowed) return denyResponse(allowance.reason);
 
   if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 1500));
     const res = NextResponse.json({ result: demoSetup(body.roomIndex ?? 0), demo: true });
-    await allowance.record(res);
+    await allowance.record();
     return res;
   }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   try {
     const result = await setupRoom({ imageBase64: img.base64, mediaType: img.mediaType });
     const res = NextResponse.json({ result, demo: false });
-    await allowance.record(res);
+    await allowance.record();
     return res;
   } catch (err) {
     return errorResponse(err);

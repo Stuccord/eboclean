@@ -138,6 +138,15 @@ export class LocalBackend implements AccountBackend {
     return withDb((db) => Object.values(db.profiles).find((p) => p.paystackCustomerId === customerId) ?? null);
   }
 
+  claimTrial(userId: string) {
+    return withDb((db) => {
+      const p = db.profiles[userId];
+      if (!p || p.trialUsed) return false;
+      p.trialUsed = true;
+      return true;
+    }, true);
+  }
+
   async deleteAccount(userId: string) {
     await withDb((db) => {
       const email = db.profiles[userId]?.email ?? Object.values(db.users).find((u) => u.id === userId)?.email;

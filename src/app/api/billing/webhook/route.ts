@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { accounts } from "@/lib/db";
-import { CURRENCY, forgetStatus } from "@/lib/billing";
+import { activateCardTrial, CURRENCY, forgetStatus, PLANS, type PlanId } from "@/lib/billing";
 
 // Paystack webhook. Set this URL in Paystack -> Settings -> API Keys & Webhooks:
 //   https://<your-domain>/api/billing/webhook
@@ -13,7 +13,9 @@ interface PaystackEvent {
   data: {
     status?: string;
     currency?: string;
-    metadata?: { app?: string; user_id?: string } | string | null;
+    reference?: string;
+    authorization?: { authorization_code?: string; reusable?: boolean };
+    metadata?: { app?: string; user_id?: string; kind?: string; plan?: string } | string | null;
     customer?: { id?: number; customer_code?: string; email?: string };
   };
 }
@@ -49,8 +51,23 @@ export async function POST(req: NextRequest) {
     if (evt.event === "charge.success" && customerId && evt.data.status === "success" && evt.data.currency === CURRENCY) {
       const meta = typeof evt.data.metadata === "object" && evt.data.metadata ? evt.data.metadata : {};
       // Link the paying customer to the account that started checkout (only our own checkouts).
-      if (meta.app === "eboclean" && meta.user_id && /^[A-Za-z0-9-]{1,64}$/.test(meta.user_id)) {
-        await accounts().updateProfile(meta.user_id, {
+      const owned = meta.app === "eboclean" && meta.user_id && /^[A-Za-z0-9-]{1,64}$/.test(meta.user_id);
+      if (owned && meta.kind === "trial") {
+        // Buyer closed the tab before coming back: start their trial here instead.
+        const auth = evt.data.authorization;
+        if (auth?.authorization_code && auth.reusable && evt.data.reference && evt.data.customer?.customer_code && evt.data.customer.email) {
+          await activateCardTrial({
+            userId: meta.user_id!,
+            email: evt.data.customer.email,
+            plan: meta.plan && meta.plan in PLANS ? (meta.plan as PlanId) : "yearly",
+            reference: evt.data.reference,
+            customerId,
+            customerCode: evt.data.customer.customer_code,
+            authorizationCode: auth.authorization_code,
+          });
+        }
+      } else if (owned) {
+        await accounts().updateProfile(meta.user_id!, {
           paystackCustomerId: customerId,
           paystackCustomerCode: evt.data.customer?.customer_code ?? null,
         });

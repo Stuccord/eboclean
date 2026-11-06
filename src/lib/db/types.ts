@@ -37,6 +37,8 @@ export interface AccountBackend {
   getPhoto(userId: string, photoId: string): Promise<{ bytes: Buffer; contentType: string } | null>;
   /** Finds the account linked to a Paystack customer (used by the webhook). */
   findByPaystackCustomer(customerId: number): Promise<Profile | null>;
+  /** Atomically marks the free trial as used. Returns false if it was already used. */
+  claimTrial(userId: string): Promise<boolean>;
   /** Permanently deletes the user, their profile, synced data and photos. */
   deleteAccount(userId: string): Promise<void>;
 }

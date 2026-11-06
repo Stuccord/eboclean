@@ -52,8 +52,9 @@ The scan uses Claude Opus 5.5 (vision + structured JSON output) with low effort 
 
 ## Payments (Paystack, in US dollars)
 
-**Free plan:** 3 AI scans and 2 rooms. **Pro:** unlimited, **$4.99/month** or **$29.99/year** (USD).
-**Trial:** 7 days of Pro, no card needed (one per account). After that, users subscribe through Paystack.
+**No free plan.** After onboarding, everyone must sign up and start a trial or subscribe; the app is locked otherwise (`AccessGate` in `src/components/Billing.tsx`), and every AI route checks it on the server.
+**Pro:** **$4.99/month** or **$29.99/year** (USD).
+**Trial: 7 days, card required.** Flow: the user picks a plan → Paystack charges a $1.00 card check (`TRIAL_CARD_CHECK`) that saves a reusable card → the server creates the Paystack subscription with `start_date` = 7 days later and refunds the $1.00 → on day 8 Paystack charges the plan automatically unless the user cancelled (Progress → Manage or cancel subscription). One trial per account (claimed atomically, so the success redirect and webhook can't start it twice). Code: `activateCardTrial` in `src/lib/billing.ts`.
 
 Without Paystack keys the app uses **demo payments** (trial, subscribe and cancel all work; nothing is charged).
 
@@ -66,7 +67,7 @@ To take real payments:
 
 How it works: the app starts a Paystack checkout for the chosen plan; Paystack charges the card in USD and creates the subscription. When the user returns, the server verifies the transaction with Paystack and stores the customer in a signed cookie. Pro status is checked live with Paystack (cached 1 minute): a subscription counts while it is `active` or `non-renewing` (cancelled but paid until the period ends). "Manage or cancel" opens Paystack's hosted subscription page.
 
-Starting a trial or subscribing requires an account, so they work on every device.
+Starting a trial or subscribing requires an account, so they work on every device. A trial cancelled before day 8 never charges; when it ends the app locks again.
 
 ## Accounts (email code sign-in + cloud sync)
 
@@ -98,8 +99,8 @@ To use real accounts with Supabase (free tier is fine):
 
 ## Protection against abuse and runaway AI costs
 
-- **AI scans need a free account.** Free-plan counts live on the account, so clearing cookies can't reset them.
-- **Daily cap per account** on all AI calls (scans, after-photos, room setups): 10/day free, 40/day Pro (`DAILY_AI_LIMIT` in `src/lib/billing.ts`). Needs the `ai_day`/`ai_count` columns: re-run `supabase/schema.sql` (safe to run again).
+- **AI needs an account with an active trial or subscription** (checked on the server for every scan and room setup).
+- **Daily cap per account** on all AI calls (scans, after-photos, room setups): 40/day (`DAILY_AI_LIMIT` in `src/lib/billing.ts`). Needs the `ai_day`/`ai_count` columns: re-run `supabase/schema.sql` (safe to run again).
 - **Burst limit per IP**: 20 AI requests per 10 minutes per server instance (`src/lib/rateLimit.ts`).
 - Also set a **monthly spend limit** in the Anthropic Console (Settings → Limits) as a final safety net.
 
