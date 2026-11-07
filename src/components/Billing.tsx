@@ -107,10 +107,15 @@ export function useBilling() {
   return { status, refresh, notice, setNotice, clearNotice: () => setNotice(null) };
 }
 
+export const TRIAL_DAYS = 3;
+
 export const PLAN_OPTIONS = [
-  { id: "yearly" as const, label: "Yearly", price: "$29.99", period: "/year", sub: "$2.50/month, billed yearly", badge: "Save 50%" },
-  { id: "monthly" as const, label: "Monthly", price: "$4.99", period: "/month", sub: "billed monthly", badge: null },
+  { id: "monthly" as const, label: "Monthly", perMonth: "$9.99", price: "$9.99", period: "/month", periodWord: "month", trial: false },
+  { id: "yearly" as const, label: "Yearly", perMonth: "$2.49", price: "$29.99", period: "/year", periodWord: "year", trial: true },
 ];
+type PlanChoice = (typeof PLAN_OPTIONS)[number]["id"];
+const YEARLY = PLAN_OPTIONS[1];
+const YEARLY_LINE = `Just ${YEARLY.price} per year (${YEARLY.perMonth}/mo)`;
 
 const DAY_MS = 86_400_000;
 
@@ -118,10 +123,66 @@ function formatDate(ms: number) {
   return new Date(ms).toLocaleDateString(undefined, { month: "long", day: "numeric" });
 }
 
+function Check({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={`h-5 w-5 ${className}`} aria-hidden="true">
+      <path d="M4.5 10.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** "Nothing to pay today" line under the trial buttons (the $1 card check is refunded, see fine print). */
+function NothingDueToday() {
+  return (
+    <p className="flex items-center justify-center gap-1.5 text-sm font-semibold">
+      <Check /> No payment due today
+    </p>
+  );
+}
+
+/** A small, static picture of the Today screen for the first paywall step. */
+function AppPreview() {
+  const rows = [
+    ["👕", "Clothes into the basket", "2 min"],
+    ["🍽️", "Dishes back to the kitchen", "2 min"],
+    ["🛏️", "Make the bed", "3 min"],
+  ];
+  return (
+    <div className="mx-auto w-[min(17rem,72vw)] rounded-[2.6rem] bg-neutral-950 p-2.5 shadow-2xl shadow-black/25">
+      <div className="overflow-hidden rounded-[2.1rem] bg-neutral-50 px-4 pb-5 pt-7 text-left">
+        <p className="text-[11px] font-semibold text-neutral-400">Good morning 👋</p>
+        <p className="text-lg font-bold leading-tight">Your home today</p>
+        <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
+          <svg viewBox="0 0 36 36" className="h-11 w-11 shrink-0 -rotate-90">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5e5" strokeWidth="4" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#0a0a0a" strokeWidth="4" strokeLinecap="round" strokeDasharray="94.2" strokeDashoffset="26" />
+          </svg>
+          <div>
+            <p className="text-xs font-bold">Home freshness</p>
+            <p className="text-[11px] text-neutral-500">A quick reset will make a big difference.</p>
+          </div>
+        </div>
+        <div className="mt-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5">
+          <p className="text-xs font-bold">Today&apos;s plan</p>
+          {rows.map(([icon, title, min]) => (
+            <div key={title} className="mt-2 flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-neutral-100 text-sm">{icon}</span>
+              <span className="flex-1 truncate text-[11px] font-semibold">{title}</span>
+              <span className="text-[10px] text-neutral-400">{min}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 rounded-full bg-neutral-950 py-2 text-center text-[11px] font-bold text-white">🧹 Clean with Ebo</div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Full-screen gate for anyone without an active trial or subscription.
- * Signed out: create an account / sign in. Signed in: start the 7-day trial with a card
- * (or subscribe, if the trial was already used). Nothing else in the app is reachable.
+ * Signed out: create an account / sign in. Signed in: a three-step paywall (try it free, reminder
+ * promise, trial timeline + plan choice). The free trial is on the yearly plan only; monthly is paid
+ * at checkout. If the trial was already used, it goes straight to the plan choice.
  */
 export function AccessGate({
   email,
@@ -136,7 +197,8 @@ export function AccessGate({
   onSignOut: () => void;
   onRestore: () => Promise<void>;
 }) {
-  const [plan, setPlan] = useState<"yearly" | "monthly">("yearly");
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [plan, setPlan] = useState<PlanChoice>("yearly");
   const [loading, setLoading] = useState<"pay" | "restore" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
@@ -147,13 +209,13 @@ export function AccessGate({
         <LogoMark size={88} />
         <h1 className="mt-6 text-3xl font-bold tracking-tight">Save your plan</h1>
         <p className="mt-2 max-w-xs text-neutral-500">
-          Create your account to keep your rooms and streak safe, then start your 7-day free trial.
+          Create your account to keep your rooms and streak safe, then try Eboclean free for {TRIAL_DAYS} days.
         </p>
         <div className="mt-8 w-full space-y-3 text-left">
           {[
             ["🔒", "Your home, saved", "Rooms, tasks and photos sync to every device."],
             ["✉️", "No password", "We email you a 6-digit code to sign in."],
-            ["🎁", "7 days free", "Try everything before you pay anything."],
+            ["🎁", `${TRIAL_DAYS} days free`, "Try everything before you pay anything."],
           ].map(([icon, title, text]) => (
             <div key={title} className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-neutral-100 text-xl">{icon}</span>
@@ -178,8 +240,10 @@ export function AccessGate({
   }
 
   const trialAvailable = status ? !status.trialUsed : true;
+  const shown = trialAvailable ? step : 2;
   const chosen = PLAN_OPTIONS.find((p) => p.id === plan)!;
-  const chargeDate = formatDate(now + 7 * DAY_MS);
+  const withTrial = trialAvailable && chosen.trial;
+  const chargeDate = formatDate(now + TRIAL_DAYS * DAY_MS);
 
   async function checkout() {
     setLoading("pay");
@@ -188,7 +252,7 @@ export function AccessGate({
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, trial: trialAvailable }),
+        body: JSON.stringify({ plan, trial: withTrial }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? "Couldn't start checkout.");
@@ -199,34 +263,119 @@ export function AccessGate({
     }
   }
 
+  async function restore() {
+    setLoading("restore");
+    await onRestore();
+    setLoading(null);
+  }
+
+  const topBar = (
+    <div className="flex h-10 items-center justify-between">
+      {trialAvailable && shown > 0 ? (
+        <button
+          onClick={() => setStep((s) => (s > 0 ? ((s - 1) as 0 | 1) : s))}
+          aria-label="Back"
+          className="grid h-10 w-10 place-items-center rounded-full bg-neutral-100 text-lg font-bold"
+        >
+          ←
+        </button>
+      ) : (
+        <span />
+      )}
+      <button onClick={restore} disabled={loading !== null} className="text-sm font-semibold text-neutral-500">
+        {loading === "restore" ? "Checking…" : "Restore"}
+      </button>
+    </div>
+  );
+
+  const footer = (
+    <>
+      {status?.demoBilling && (
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs text-amber-700 ring-1 ring-amber-200">
+          Demo payments: no card is charged. Add Paystack keys to take real payments.
+        </p>
+      )}
+      <p className="mt-3 truncate text-center text-xs text-neutral-400">
+        Signed in as {email} ·{" "}
+        <button onClick={onSignOut} className="font-semibold underline">
+          Sign out
+        </button>
+      </p>
+      <LegalLinks />
+    </>
+  );
+
+  const primary = "w-full rounded-full bg-neutral-950 py-4 text-lg font-semibold text-white shadow-lg shadow-black/15 active:scale-[0.98] disabled:opacity-60";
+
+  // Step 1: "We want you to try Eboclean for free."
+  if (shown === 0) {
+    return (
+      <section className="flex flex-1 flex-col pt-2">
+        {topBar}
+        <h1 className="mt-4 text-center text-3xl font-bold tracking-tight">We want you to try Eboclean for free.</h1>
+        <div className="my-8 flex flex-1 items-center">
+          <AppPreview />
+        </div>
+        <div className="space-y-3">
+          <NothingDueToday />
+          <button onClick={() => setStep(1)} className={primary}>
+            Try for $0.00
+          </button>
+          <p className="text-center text-sm text-neutral-500">{YEARLY_LINE}</p>
+        </div>
+        {footer}
+      </section>
+    );
+  }
+
+  // Step 2: the reminder promise.
+  if (shown === 1) {
+    return (
+      <section className="flex flex-1 flex-col pt-2">
+        {topBar}
+        <h1 className="mt-4 text-center text-3xl font-bold tracking-tight">We&apos;ll send you a reminder before your free trial ends</h1>
+        <div className="my-8 flex flex-1 items-center justify-center">
+          <div className="relative">
+            <span className="grid h-40 w-40 place-items-center rounded-full bg-neutral-100 text-7xl">🔔</span>
+            <span className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-rose-500 text-lg font-bold text-white ring-4 ring-white">1</span>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <NothingDueToday />
+          <button onClick={() => setStep(2)} className={primary}>
+            Continue for FREE
+          </button>
+          <p className="text-center text-sm text-neutral-500">{YEARLY_LINE}</p>
+        </div>
+        {footer}
+      </section>
+    );
+  }
+
+  // Step 3: trial timeline + plan choice (or, after the trial, just the plan choice).
   const timeline = [
-    { icon: "🔓", title: "Today", text: "Full access to AI scans, your daily plan and Ebo. $0 due today." },
-    { icon: "🙌", title: "Any time", text: "Cancel in 2 taps from Progress. No questions asked." },
-    {
-      icon: "💳",
-      title: chargeDate,
-      text: `Your ${chosen.label.toLowerCase()} plan starts at ${chosen.price}${chosen.period}. Cancel before then and you pay nothing.`,
-    },
+    { icon: "🔓", title: "Today", text: "Unlock everything: AI room scans, your daily plan and Ebo, your cleaning coach." },
+    { icon: "🔔", title: "In 2 days - Reminder", text: "We'll email you that your trial is ending soon." },
+    { icon: "👑", title: `In ${TRIAL_DAYS} days - Billing starts`, text: `You'll be charged on ${chargeDate} unless you cancel anytime before.` },
   ];
 
   return (
-    <section className="flex flex-1 flex-col pt-4">
-      <h1 className="text-3xl font-bold tracking-tight">{trialAvailable ? "Start your 7-day free trial" : "Your free trial has ended"}</h1>
-      <p className="mt-2 text-neutral-500">
-        {trialAvailable
-          ? "Unlock everything Eboclean does for you."
-          : "Pick a plan to keep your home on track. Your rooms and streak are waiting."}
-      </p>
+    <section className="flex flex-1 flex-col pt-2">
+      {topBar}
+      <h1 className="mt-3 text-3xl font-bold tracking-tight">
+        {trialAvailable ? `Start your ${TRIAL_DAYS}-day FREE trial to continue.` : "Your free trial has ended"}
+      </h1>
+      {!trialAvailable && <p className="mt-2 text-neutral-500">Pick a plan to keep your home on track. Your rooms and streak are waiting.</p>}
 
       {trialAvailable && (
-        <ol className="mt-6">
+        <ol className={`mt-6 transition-opacity ${withTrial ? "" : "opacity-40"}`} aria-hidden={!withTrial}>
           {timeline.map((t, i) => (
             <li key={t.title} className="flex gap-3">
               <span className="flex flex-col items-center">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-neutral-950 text-lg">{t.icon}</span>
-                {i < timeline.length - 1 && <span className="w-0.5 flex-1 bg-neutral-200" />}
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-neutral-950 text-lg">{t.icon}</span>
+                {i < timeline.length - 1 && <span className="w-1 flex-1 rounded-full bg-neutral-950/15" />}
               </span>
-              <span className="pb-5 pt-1.5">
+              <span className="pb-5 pt-1">
                 <span className="block font-semibold">{t.title}</span>
                 <span className="text-sm text-neutral-500">{t.text}</span>
               </span>
@@ -235,63 +384,50 @@ export function AccessGate({
         </ol>
       )}
 
-      <div className={`${trialAvailable ? "mt-1" : "mt-6"} grid grid-cols-2 gap-2`}>
-        {PLAN_OPTIONS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setPlan(p.id)}
-            aria-pressed={plan === p.id}
-            className={`relative rounded-2xl p-3 text-left transition ${plan === p.id ? "bg-neutral-950 text-white" : "bg-white ring-1 ring-black/10"}`}
-          >
-            {p.badge && (
-              <span className="absolute -top-2.5 right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">{p.badge}</span>
-            )}
-            <span className="block text-sm font-semibold">{p.label}</span>
-            <span className="block text-xl font-bold">{p.price}</span>
-            <span className={`block text-xs ${plan === p.id ? "text-white/60" : "text-neutral-500"}`}>{p.sub}</span>
-          </button>
-        ))}
+      <div className={`${trialAvailable ? "mt-2" : "mt-6"} grid grid-cols-2 gap-3`}>
+        {PLAN_OPTIONS.map((p) => {
+          const on = plan === p.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => setPlan(p.id)}
+              aria-pressed={on}
+              className={`relative rounded-2xl p-4 text-left transition ${on ? "bg-white ring-2 ring-neutral-950" : "bg-white ring-1 ring-black/10"}`}
+            >
+              {trialAvailable && p.trial && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-neutral-950 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                  {TRIAL_DAYS} days free
+                </span>
+              )}
+              <span className="flex items-center justify-between">
+                <span className="text-sm font-semibold">{p.label}</span>
+                <span className={`grid h-6 w-6 place-items-center rounded-full ${on ? "bg-neutral-950 text-white" : "ring-1 ring-black/20"}`}>
+                  {on && <Check className="h-4 w-4" />}
+                </span>
+              </span>
+              <span className="mt-1 block text-xl font-bold">
+                {p.perMonth} <span className="text-sm font-semibold text-neutral-500">/mo</span>
+              </span>
+              <span className="block text-xs text-neutral-500">{p.id === "yearly" ? `${p.price} billed yearly` : "billed monthly"}</span>
+            </button>
+          );
+        })}
       </div>
 
       {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
-      <div className="mt-auto pt-6">
-        <button
-          onClick={checkout}
-          disabled={loading !== null}
-          className="w-full rounded-full bg-neutral-950 py-4 font-semibold text-white shadow-lg shadow-black/15 active:scale-[0.98] disabled:opacity-60"
-        >
-          {loading === "pay" ? "Opening secure checkout…" : trialAvailable ? "Start my free trial" : `Subscribe for ${chosen.price}${chosen.period}`}
+      <div className="mt-auto space-y-3 pt-6">
+        {withTrial && <NothingDueToday />}
+        <button onClick={checkout} disabled={loading !== null} className={primary}>
+          {loading === "pay" ? "Opening secure checkout…" : withTrial ? `Start my ${TRIAL_DAYS}-day free trial` : `Subscribe for ${chosen.price}${chosen.period}`}
         </button>
-        <p className="mt-2 text-center text-xs text-neutral-500">
-          {trialAvailable
-            ? `$0 today. To check your card, Paystack charges $1.00 and refunds it right away. From ${chargeDate}, ${chosen.price}${chosen.period} renews automatically until you cancel.`
-            : "Charged in US dollars through Paystack. Renews automatically. Cancel anytime."}
+        <p className="text-center text-xs text-neutral-500">
+          {withTrial
+            ? `${TRIAL_DAYS} days free, then ${chosen.price} per year (${chosen.perMonth}/mo). To check your card, Paystack charges $1.00 and refunds it right away. Renews automatically until you cancel.`
+            : `${chosen.price} charged today, then every ${chosen.periodWord}, in US dollars through Paystack. Renews automatically. Cancel anytime.`}
         </p>
-        {status?.demoBilling && (
-          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs text-amber-700 ring-1 ring-amber-200">
-            Demo payments: no card is charged. Add Paystack keys to take real payments.
-          </p>
-        )}
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <button
-            onClick={async () => {
-              setLoading("restore");
-              await onRestore();
-              setLoading(null);
-            }}
-            disabled={loading !== null}
-            className="font-semibold text-neutral-900"
-          >
-            {loading === "restore" ? "Checking…" : "Restore purchase"}
-          </button>
-          <button onClick={onSignOut} className="font-semibold text-neutral-500">
-            Sign out
-          </button>
-        </div>
-        <p className="mt-2 truncate text-center text-xs text-neutral-400">Signed in as {email}</p>
-        <LegalLinks />
       </div>
+      {footer}
     </section>
   );
 }
@@ -364,7 +500,7 @@ export function CheckoutToast({ notice, onClose }: { notice: CheckoutNotice; onC
   if (!notice) return null;
   const text = {
     success: "🎉 Welcome to Pro! Thanks for subscribing.",
-    "trial-started": "🎉 Your 7-day free trial has started. Enjoy everything Eboclean has!",
+    "trial-started": `🎉 Your ${TRIAL_DAYS}-day free trial has started. Enjoy everything Eboclean has!`,
     "card-not-reusable": "That card can't be used for a subscription. Please try another card. The $1.00 check was refunded.",
     cancelled: "No worries. Nothing was charged.",
     error: "We couldn't confirm your payment. If you were charged, contact support.",

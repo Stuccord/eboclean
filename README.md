@@ -53,21 +53,21 @@ The scan uses Claude Opus 5.5 (vision + structured JSON output) with low effort 
 ## Payments (Paystack, in US dollars)
 
 **No free plan.** After onboarding, everyone must sign up and start a trial or subscribe; the app is locked otherwise (`AccessGate` in `src/components/Billing.tsx`), and every AI route checks it on the server.
-**Pro:** **$4.99/month** or **$29.99/year** (USD).
-**Trial: 7 days, card required.** Flow: the user picks a plan → Paystack charges a $1.00 card check (`TRIAL_CARD_CHECK`) that saves a reusable card → the server creates the Paystack subscription with `start_date` = 7 days later and refunds the $1.00 → on day 8 Paystack charges the plan automatically unless the user cancelled (Progress → Manage or cancel subscription). One trial per account (claimed atomically, so the success redirect and webhook can't start it twice). Code: `activateCardTrial` in `src/lib/billing.ts`.
+**Pro:** **$9.99/month** or **$29.99/year** (USD). The yearly plan has a 3-day free trial (card up front); monthly is charged at checkout.
+**Trial: 3 days, yearly plan only, card required.** Flow: the user picks the yearly plan → Paystack charges a $1.00 card check (`TRIAL_CARD_CHECK`) that saves a reusable card → the server creates the Paystack subscription with `start_date` = 3 days later and refunds the $1.00 → on day 4 Paystack charges the plan automatically unless the user cancelled (Progress → Manage or cancel subscription). One trial per account (claimed atomically, so the success redirect and webhook can't start it twice). Code: `activateCardTrial` in `src/lib/billing.ts`.
 
 Without Paystack keys the app uses **demo payments** (trial, subscribe and cancel all work; nothing is charged).
 
 To take real payments:
 1. Open a Paystack account and complete business verification.
 2. **Ask Paystack to enable USD payments** on your account (Settings, or contact Paystack support). USD availability depends on your business country and needs approval.
-3. In **Test mode**: Products → Plans → create "Eboclean Pro Monthly" ($4.99, monthly, currency USD) and "Eboclean Pro Yearly" ($29.99, annually, currency USD). Copy each plan code (`PLN_...`).
+3. In **Test mode**: Products → Plans → create "Eboclean Pro Monthly" ($9.99, monthly, currency USD) and "Eboclean Pro Yearly" ($29.99, annually, currency USD). Copy each plan code (`PLN_...`).
 4. Put `PAYSTACK_SECRET_KEY` (test key first), `PAYSTACK_PLAN_MONTHLY`, `PAYSTACK_PLAN_YEARLY` and `APP_SECRET` in `.env.local` (see `.env.example`).
 5. Test with Paystack's test cards, then switch to your live key and live plan codes.
 
 How it works: the app starts a Paystack checkout for the chosen plan; Paystack charges the card in USD and creates the subscription. When the user returns, the server verifies the transaction with Paystack and stores the customer in a signed cookie. Pro status is checked live with Paystack (cached 1 minute): a subscription counts while it is `active` or `non-renewing` (cancelled but paid until the period ends). "Manage or cancel" opens Paystack's hosted subscription page.
 
-Starting a trial or subscribing requires an account, so they work on every device. A trial cancelled before day 8 never charges; when it ends the app locks again.
+Starting a trial or subscribing requires an account, so they work on every device. A trial cancelled before day 4 never charges; when it ends the app locks again.
 
 ## Accounts (email code sign-in + cloud sync)
 
@@ -120,7 +120,7 @@ Open **https://eboclean-two.vercel.app/admin** and sign in with an email listed 
 - **Overview**: things to look out for (failed payments, unrefunded card checks, AI errors, missing setup), money (MRR, revenue, fees, refunds, profit after AI costs, charges coming in the next 7 days), growth (sign-ups, active users), subscription statuses, the trial-to-paid funnel, and AI usage and cost per day.
 - **Users**: every account with its status, activity, AI cost and payments; search, filter, CSV export. Open a user to see their timeline and to give free days, reset their daily scan limit, cancel their subscription, email them or delete the account.
 - **Payments**: money in and out from Paystack, failed attempts, trial card checks, one-click refunds.
-- **Emails**: email a group (everyone, on trial, paying, payment failed, trial ended…) through Resend. Announcements include an unsubscribe link and skip people who unsubscribed. A daily job emails people 1–2 days before their trial converts.
+- **Emails**: email a group (everyone, on trial, paying, payment failed, trial ended…) through Resend. Announcements include an unsubscribe link and skip people who unsubscribed. A daily job emails people on day 2 of their 3-day trial, before it converts.
 - **Activity**: a live log of sign-ups, sign-ins, trials, scans, blocked scans, Paystack events, emails and admin actions.
 - **Setup**: what's connected and what's missing.
 

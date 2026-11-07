@@ -21,8 +21,8 @@ export default function TermsPage() {
       <Bullets>
         <li>Eboclean needs an account and an active free trial or subscription. There is no free plan.</li>
         <li>
-          New accounts get a 7-day free trial. You add a card to start it; Paystack makes a small card check that is refunded right
-          away. One trial per person.
+          The yearly plan comes with a 3-day free trial. You add a card to start it; Paystack makes a small card check that is
+          refunded right away. One trial per person. The monthly plan has no free trial and is charged when you subscribe.
         </li>
         <li>
           <b>When the trial ends, your card is charged automatically</b> for the plan you chose, unless you cancel before the trial

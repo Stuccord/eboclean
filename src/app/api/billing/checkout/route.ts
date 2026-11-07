@@ -12,6 +12,7 @@ import {
   PLANS,
   saveBilling,
   TRIAL_CARD_CHECK,
+  TRIAL_PLAN,
   trialEnd,
 } from "@/lib/billing";
 import { track } from "@/lib/events";
@@ -21,7 +22,8 @@ const BodySchema = z.object({ plan: z.enum(["yearly", "monthly"]), trial: z.bool
 /**
  * Starts a Paystack checkout.
  * - trial: true  -> a small card check (refunded) that saves the card; the subscription's first
- *                   charge is scheduled for the end of the 7-day trial (see /api/billing/success).
+ *                   charge is scheduled for the end of the free trial (see /api/billing/success).
+ *                   Only the yearly plan has a trial.
  * - otherwise    -> pay now for the chosen plan.
  */
 export async function POST(req: NextRequest) {
@@ -38,6 +40,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Please sign in first.", needLogin: true }, { status: 401 });
   }
   const wantsTrial = Boolean(body.trial);
+  if (wantsTrial && plan !== TRIAL_PLAN) {
+    return NextResponse.json({ error: "The free trial is only on the yearly plan." }, { status: 400 });
+  }
   if (wantsTrial && state.trialUsed) {
     return NextResponse.json({ error: "Your free trial has already been used. Choose a plan to continue." }, { status: 409 });
   }

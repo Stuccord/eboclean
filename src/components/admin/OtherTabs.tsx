@@ -293,7 +293,7 @@ export function EmailTab() {
         </Panel>
         <Panel title="Automatic emails">
           <p className="text-sm text-neutral-600">
-            Every day at 09:00 UTC, people whose trial ends within 2 days get a reminder that their card will be charged and how to cancel. This cuts surprise charges and
+            Every day at 09:00 UTC, people whose trial ends within the next 36 hours (day 2 of the 3-day trial) get a reminder that their card will be charged and how to cancel. This cuts surprise charges and
             chargebacks.
           </p>
           <div className="mt-3">

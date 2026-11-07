@@ -16,13 +16,16 @@ export const DAILY_AI_LIMIT = 40;
 export const TRIAL_CARD_CHECK = 100;
 /** Burst limit per IP address across all AI routes, on top of the per-account limits. */
 const IP_LIMIT = { max: 20, windowMs: 10 * 60_000 };
-export const TRIAL_DAYS = 7;
+/** Free trial length. Only the yearly plan has a trial; monthly is charged at checkout. */
+export const TRIAL_DAYS = 3;
+export const TRIAL_PLAN = "yearly" as const;
 const DAY_MS = 86_400_000;
 
 // Prices are in US dollars. Paystack amounts are in the smallest unit (cents).
+// They must match the plan amounts set in the Paystack dashboard.
 export const PLANS = {
   yearly: { label: "Yearly", cents: 2999, env: "PAYSTACK_PLAN_YEARLY" },
-  monthly: { label: "Monthly", cents: 499, env: "PAYSTACK_PLAN_MONTHLY" },
+  monthly: { label: "Monthly", cents: 999, env: "PAYSTACK_PLAN_MONTHLY" },
 } as const;
 export type PlanId = keyof typeof PLANS;
 export const CURRENCY = "USD";
