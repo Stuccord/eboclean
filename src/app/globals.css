@@ -5,7 +5,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Type scale matching Cal AI, which uses Apple's standard iOS text sizes:
+/* Type scale based on Apple's standard iOS text sizes:
    caption 12, subheadline 15, body 17, title3 20, title2 22, title1 28, large title 34. */
 @theme {
   --text-xs: 12px;

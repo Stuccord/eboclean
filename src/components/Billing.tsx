@@ -115,7 +115,7 @@ export const PLAN_OPTIONS = [
 ];
 type PlanChoice = (typeof PLAN_OPTIONS)[number]["id"];
 const YEARLY = PLAN_OPTIONS[1];
-const YEARLY_LINE = `Just ${YEARLY.price} per year (${YEARLY.perMonth}/mo)`;
+const YEARLY_LINE = `Then ${YEARLY.price} a year, about ${YEARLY.perMonth} a month`;
 
 const DAY_MS = 86_400_000;
 
@@ -131,11 +131,11 @@ function Check({ className = "" }: { className?: string }) {
   );
 }
 
-/** "Nothing to pay today" line under the trial buttons (the $1 card check is refunded, see fine print). */
+/** "$0 today" line under the trial buttons (the $1 card check is refunded, see fine print). */
 function NothingDueToday() {
   return (
     <p className="flex items-center justify-center gap-1.5 text-sm font-semibold">
-      <Check /> No payment due today
+      <Check /> $0 due today, cancel anytime
     </p>
   );
 }
@@ -180,8 +180,8 @@ function AppPreview() {
 
 /**
  * Full-screen gate for anyone without an active trial or subscription.
- * Signed out: create an account / sign in. Signed in: a three-step paywall (try it free, reminder
- * promise, trial timeline + plan choice). The free trial is on the yearly plan only; monthly is paid
+ * Signed out: create an account / sign in. Signed in: a three-step paywall (what you get, the
+ * reminder promise, how the trial works + plan choice). The free trial is on the yearly plan only; monthly is paid
  * at checkout. If the trial was already used, it goes straight to the plan choice.
  */
 export function AccessGate({
@@ -307,19 +307,19 @@ export function AccessGate({
 
   const primary = "w-full rounded-full bg-neutral-950 py-4 text-lg font-semibold text-white shadow-lg shadow-black/15 active:scale-[0.98] disabled:opacity-60";
 
-  // Step 1: "We want you to try Eboclean for free."
+  // Step 1: what you get, free.
   if (shown === 0) {
     return (
       <section className="flex flex-1 flex-col pt-2">
         {topBar}
-        <h1 className="mt-4 text-center text-3xl font-bold tracking-tight">We want you to try Eboclean for free.</h1>
+        <h1 className="mt-4 text-center text-3xl font-bold tracking-tight">Your calmer home starts here, free.</h1>
         <div className="my-8 flex flex-1 items-center">
           <AppPreview />
         </div>
         <div className="space-y-3">
           <NothingDueToday />
           <button onClick={() => setStep(1)} className={primary}>
-            Try for $0.00
+            Get started free
           </button>
           <p className="text-center text-sm text-neutral-500">{YEARLY_LINE}</p>
         </div>
@@ -333,17 +333,21 @@ export function AccessGate({
     return (
       <section className="flex flex-1 flex-col pt-2">
         {topBar}
-        <h1 className="mt-4 text-center text-3xl font-bold tracking-tight">We&apos;ll send you a reminder before your free trial ends</h1>
+        <h1 className="mt-4 text-center text-3xl font-bold tracking-tight">No surprise charge after your trial.</h1>
+        <p className="mt-2 text-center text-neutral-500">We email you a day before your trial ends, so you can decide calmly.</p>
         <div className="my-8 flex flex-1 items-center justify-center">
-          <div className="relative">
-            <span className="grid h-40 w-40 place-items-center rounded-full bg-neutral-100 text-7xl">🔔</span>
-            <span className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-rose-500 text-lg font-bold text-white ring-4 ring-white">1</span>
+          <div className="w-full max-w-xs rounded-3xl bg-white p-4 text-left shadow-xl shadow-black/10 ring-1 ring-black/5">
+            <p className="flex items-center gap-2 text-xs font-semibold text-neutral-400">
+              <span className="text-base">📬</span> Eboclean · a day before
+            </p>
+            <p className="mt-2 font-bold">Your free trial ends tomorrow</p>
+            <p className="mt-1 text-sm text-neutral-500">Keep going and do nothing, or cancel in two taps. Your call.</p>
           </div>
         </div>
         <div className="space-y-3">
           <NothingDueToday />
           <button onClick={() => setStep(2)} className={primary}>
-            Continue for FREE
+            Sounds good
           </button>
           <p className="text-center text-sm text-neutral-500">{YEARLY_LINE}</p>
         </div>
@@ -352,18 +356,18 @@ export function AccessGate({
     );
   }
 
-  // Step 3: trial timeline + plan choice (or, after the trial, just the plan choice).
+  // Step 3: how the trial works + plan choice (or, after the trial, just the plan choice).
   const timeline = [
-    { icon: "🔓", title: "Today", text: "Unlock everything: AI room scans, your daily plan and Ebo, your cleaning coach." },
-    { icon: "🔔", title: "In 2 days - Reminder", text: "We'll email you that your trial is ending soon." },
-    { icon: "👑", title: `In ${TRIAL_DAYS} days - Billing starts`, text: `You'll be charged on ${chargeDate} unless you cancel anytime before.` },
+    { icon: "🧹", title: "Today", text: "Full access: room scans, tiny daily plans and Ebo, your cleaning coach." },
+    { icon: "📬", title: "Day 2: a heads-up", text: "We email you to say your trial is almost over." },
+    { icon: "✨", title: `Day ${TRIAL_DAYS}: ${chargeDate}`, text: "Your yearly plan begins, unless you cancel before then." },
   ];
 
   return (
     <section className="flex flex-1 flex-col pt-2">
       {topBar}
       <h1 className="mt-3 text-3xl font-bold tracking-tight">
-        {trialAvailable ? `Start your ${TRIAL_DAYS}-day FREE trial to continue.` : "Your free trial has ended"}
+        {trialAvailable ? "How your free trial works" : "Your free trial has ended"}
       </h1>
       {!trialAvailable && <p className="mt-2 text-neutral-500">Pick a plan to keep your home on track. Your rooms and streak are waiting.</p>}
 
@@ -396,7 +400,7 @@ export function AccessGate({
             >
               {trialAvailable && p.trial && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-neutral-950 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-                  {TRIAL_DAYS} days free
+                  Free for {TRIAL_DAYS} days
                 </span>
               )}
               <span className="flex items-center justify-between">
@@ -419,11 +423,11 @@ export function AccessGate({
       <div className="mt-auto space-y-3 pt-6">
         {withTrial && <NothingDueToday />}
         <button onClick={checkout} disabled={loading !== null} className={primary}>
-          {loading === "pay" ? "Opening secure checkout…" : withTrial ? `Start my ${TRIAL_DAYS}-day free trial` : `Subscribe for ${chosen.price}${chosen.period}`}
+          {loading === "pay" ? "Opening secure checkout…" : withTrial ? "Start free trial" : `Subscribe for ${chosen.price}${chosen.period}`}
         </button>
         <p className="text-center text-xs text-neutral-500">
           {withTrial
-            ? `${TRIAL_DAYS} days free, then ${chosen.price} per year (${chosen.perMonth}/mo). To check your card, Paystack charges $1.00 and refunds it right away. Renews automatically until you cancel.`
+            ? `Free for ${TRIAL_DAYS} days, then ${chosen.price} a year (about ${chosen.perMonth} a month). To check your card, Paystack charges $1.00 and refunds it right away. Renews automatically until you cancel.`
             : `${chosen.price} charged today, then every ${chosen.periodWord}, in US dollars through Paystack. Renews automatically. Cancel anytime.`}
         </p>
       </div>
