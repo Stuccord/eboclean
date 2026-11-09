@@ -168,8 +168,9 @@ export function ScanFlow({
       {stage === "result" && before && beforeImage && (
         <div className="flex flex-1 flex-col">
           <div className="relative overflow-hidden rounded-3xl">
+            {/* Taller and aimed low: most phone photos are portrait and the mess is usually on the floor or surfaces. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={beforeImage} alt="Your space before cleaning" className="h-64 w-full object-cover" />
+            <img src={beforeImage} alt="Your space before cleaning" className="h-72 w-full object-cover object-[50%_70%]" />
             {before.is_space && <ScoreBadge score={before.mess_score} />}
           </div>
           {before.is_space ? (

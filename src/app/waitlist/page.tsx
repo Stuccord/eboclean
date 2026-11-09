@@ -42,12 +42,12 @@ const SCAN_SCORE = 64;
  * on the photo (percent, for the 4:5 crop at object-position 50% 70%). `side` is where the label goes.
  */
 const FINDINGS: { label: string; step: string; min: number; x: number; y: number; side: "left" | "right" }[] = [
-  // Real Eboclean scan output for this photo (score 64, 5 steps, 10 minutes).
-  { label: "Toy blocks", step: "Drop the 5 toy blocks into their basket", min: 1, x: 92, y: 82, side: "left" },
-  { label: "Books", step: "Close the 2 open books, set them on the cabinet", min: 1, x: 80, y: 73, side: "left" },
-  { label: "Socks", step: "Grab the 3 stray socks for the laundry", min: 1, x: 22, y: 87, side: "right" },
-  { label: "Clothes pile", step: "Sort the pile: worn to the basket, clean aside", min: 4, x: 60, y: 88, side: "right" },
-  { label: "Clean clothes", step: "Put the clean stack away", min: 3, x: 45, y: 72, side: "left" },
+  // Real Eboclean scan output for this photo (score 64, 5 steps, 10 minutes), same scan as the hero screenshot.
+  { label: "Toy blocks", step: "Scoop up the 4 toy blocks", min: 1, x: 92, y: 82, side: "left" },
+  { label: "Books & papers", step: "Stack the 3 books and papers", min: 1, x: 80, y: 73, side: "left" },
+  { label: "Socks & sneaker", step: "Grab the 2 socks and the sneaker", min: 1, x: 22, y: 87, side: "right" },
+  { label: "Clothes pile", step: "Sort the clothes pile in two", min: 4, x: 60, y: 88, side: "right" },
+  { label: "Clean clothes", step: "Fold or hang the clean stack", min: 3, x: 45, y: 72, side: "left" },
 ];
 const TOTAL_MIN = FINDINGS.reduce((n, f) => n + f.min, 0);
 
@@ -116,48 +116,21 @@ function PhoneMockup() {
     <div className="relative mx-auto w-[248px] sm:w-[268px]" aria-hidden="true">
       <div className="relative h-[330px] overflow-hidden rounded-t-[44px] border-[7px] border-b-0 border-neutral-900 bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] sm:h-[350px]">
         {/* status bar + notch */}
-        <div className="flex items-center justify-between bg-gradient-to-b from-emerald-50 to-white px-5 pt-3 text-[11px] font-semibold">
+        <div className="flex items-center justify-between bg-[#f7f7f8] px-5 pb-1 pt-3 text-[11px] font-semibold">
           <span>9:41</span>
           <span className="h-[22px] w-[78px] rounded-full bg-neutral-900" />
           <span className="tracking-tighter">●●● ▮</span>
         </div>
-        <div className="px-4 pt-3">
-          <Wordmark className="text-[17px]" />
-          <div className="mt-3 text-[11px] text-neutral-500">Good morning</div>
-          <div className="text-[18px] font-bold leading-6">Your home today</div>
-
-          <div className="mt-3 flex items-center gap-3 rounded-2xl bg-neutral-950 p-3 text-white">
-            <div className="text-[26px] font-bold leading-none">78</div>
-            <div className="leading-tight">
-              <div className="text-[11px] text-neutral-400">Mess Score</div>
-              <div className="text-[12px] font-semibold">Chaos detected 😬</div>
-            </div>
-          </div>
-
-          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold">
-            <span className="rounded-full bg-neutral-100 px-2 py-1 text-neutral-500">5 min</span>
-            <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-800">10 min</span>
-            <span className="rounded-full bg-neutral-100 px-2 py-1 text-neutral-500">15 min</span>
-          </div>
-
-          <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Today&apos;s plan</div>
-          <ul className="mt-1.5 space-y-1.5 text-[12px]">
-            <li className="flex items-center gap-2 rounded-xl bg-neutral-50 px-2.5 py-2 text-neutral-400 line-through">
-              <span className="grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[9px] text-white no-underline">✓</span>
-              Grab the 6 cups → kitchen
-            </li>
-            <li className="flex items-center gap-2 rounded-xl bg-neutral-50 px-2.5 py-2">
-              <span className="h-4 w-4 rounded-full ring-2 ring-neutral-300" />
-              Clothes on chair → hamper
-              <span className="ml-auto text-[10px] text-neutral-400">3m</span>
-            </li>
-            <li className="flex items-center gap-2 rounded-xl bg-neutral-50 px-2.5 py-2">
-              <span className="h-4 w-4 rounded-full ring-2 ring-neutral-300" />
-              Trash in one bag
-              <span className="ml-auto text-[10px] text-neutral-400">1m</span>
-            </li>
-          </ul>
-        </div>
+        {/* Real screenshot of the app's scan result for SCAN_PHOTO (real AI, 390pt wide at 1.32x). */}
+        <Image
+          src="/waitlist/app-scan.png"
+          alt=""
+          width={515}
+          height={864}
+          priority
+          sizes="268px"
+          className="block h-auto w-full"
+        />
       </div>
       {/* fade the bottom of the phone into the page, like it's tucked behind the headline */}
       <div className="pointer-events-none absolute inset-x-[-20px] bottom-0 h-24 bg-gradient-to-t from-white to-transparent" />
