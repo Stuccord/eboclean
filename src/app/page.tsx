@@ -131,7 +131,7 @@ export default function Home() {
             <AccessGate
               email={account.user?.email ?? null}
               status={billing.status}
-              onSignUp={() => setAuth({ title: "Create your account", subtitle: "Enter your email and we'll send you a 6-digit code. No password needed." })}
+              onSignUp={() => setAuth({ title: "Create your account", subtitle: "We'll email you a 6-digit code. No password needed." })}
               onSignOut={async () => {
                 await account.signOut();
                 await billing.refresh();

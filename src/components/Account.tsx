@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LogoMark } from "./Logo";
 import { subscribeProgress } from "@/lib/progress";
 import { PHOTO_EVENT, subscribeHome } from "@/lib/store";
 import { clearDeviceData, pushNow, pushSoon, syncAfterSignIn } from "@/lib/sync";
@@ -175,28 +177,56 @@ export function AuthSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-neutral-950/40 sm:items-center" role="dialog" aria-modal="true" aria-label="Sign in">
-      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
-        <div className="flex justify-end">
-          <button onClick={onClose} className="rounded-full bg-neutral-100 px-3 py-1 text-sm font-semibold text-neutral-900/60" aria-label="Close">
-            ✕
-          </button>
-        </div>
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-neutral-100 text-4xl">{step === "email" ? "💾" : "📬"}</div>
-        <h2 className="mt-3 text-center text-2xl font-bold">{step === "email" ? title : "Check your email"}</h2>
-        <p className="mt-1 text-center text-sm text-neutral-900/60">
-          {step === "email" ? subtitle : `We sent a 6-digit code to ${email.trim()}.`}
+    <div
+      className="sheet-backdrop fixed inset-0 z-50 flex items-end justify-center bg-neutral-950/55 backdrop-blur-sm sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={step === "email" ? title : "Check your email"}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="sheet-panel relative w-full max-w-md rounded-t-[28px] bg-white px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-8 shadow-2xl sm:rounded-[28px] sm:px-8">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+          aria-label="Close"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+
+        {step === "email" ? (
+          <LogoMark size={52} className="mx-auto block" />
+        ) : (
+          <div className="mx-auto grid h-[52px] w-[52px] place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="3" />
+              <path d="M4 7l8 6 8-6" />
+            </svg>
+          </div>
+        )}
+        <h2 className="mt-4 text-center text-[26px] font-bold leading-tight tracking-tight">{step === "email" ? title : "Check your email"}</h2>
+        <p className="mx-auto mt-2 max-w-xs text-balance text-center text-[15px] leading-snug text-neutral-500">
+          {step === "email" ? (
+            subtitle
+          ) : (
+            <>
+              We sent a 6-digit code to <span className="font-semibold text-neutral-900">{email.trim()}</span>
+            </>
+          )}
         </p>
 
         {step === "email" ? (
           <form
-            className="mt-5"
+            className="mt-6"
             onSubmit={(e) => {
               e.preventDefault();
               sendCode();
             }}
           >
-            <label className="block text-xs font-semibold text-neutral-900/60" htmlFor="auth-email">
+            <label className="block text-sm font-medium text-neutral-700" htmlFor="auth-email">
               Email
             </label>
             <input
@@ -208,33 +238,44 @@ export function AuthSheet({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="mt-1 w-full rounded-xl bg-neutral-100 px-3 py-3 outline-none focus:ring-2 focus:ring-neutral-400"
+              className="mt-1.5 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 text-base outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
             />
             {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="mt-4 w-full rounded-full bg-neutral-900 py-4 font-bold text-white shadow-lg shadow-black/15 hover:bg-black disabled:opacity-60"
+              className="mt-4 w-full rounded-2xl bg-neutral-950 py-4 font-semibold text-white transition hover:bg-neutral-800 active:scale-[0.99] disabled:opacity-60"
             >
-              {busy ? "Sending…" : "Send my code"}
+              {busy ? "Sending…" : "Continue"}
             </button>
-            <p className="mt-2 text-center text-xs text-neutral-900/50">No password needed. New here? This creates your account.</p>
+            <p className="mt-4 text-center text-xs leading-relaxed text-neutral-400">
+              New or returning, the same code signs you in.
+              <br />
+              By continuing you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-neutral-700">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-neutral-700">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </form>
         ) : (
           <form
-            className="mt-5"
+            className="mt-6"
             onSubmit={(e) => {
               e.preventDefault();
               verify();
             }}
           >
-            <p className="mb-3 text-center text-xs text-neutral-900/50">Can&apos;t find it? Check your spam or promotions folder.</p>
             {devCode && (
               <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-center text-sm text-amber-800 ring-1 ring-amber-200">
                 Demo accounts: no email is sent. Your code is <b className="font-mono tracking-widest">{devCode}</b>
               </p>
             )}
-            <label className="block text-xs font-semibold text-neutral-900/60" htmlFor="auth-code">
+            <label className="sr-only" htmlFor="auth-code">
               6-digit code
             </label>
             <input
@@ -246,19 +287,21 @@ export function AuthSheet({
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="123456"
-              className="mt-1 w-full rounded-xl bg-neutral-100 px-3 py-3 text-center font-mono text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-neutral-400"
+              className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-center font-mono text-[28px] tracking-[0.5em] outline-none transition placeholder:text-neutral-300 focus:border-neutral-950 focus:ring-4 focus:ring-neutral-950/5"
             />
+            <p className="mt-2 text-center text-xs text-neutral-400">Can&apos;t find it? Check your spam or promotions folder.</p>
             {error && <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="mt-4 w-full rounded-full bg-neutral-900 py-4 font-bold text-white shadow-lg shadow-black/15 hover:bg-black disabled:opacity-60"
+              className="mt-4 w-full rounded-2xl bg-neutral-950 py-4 font-semibold text-white transition hover:bg-neutral-800 active:scale-[0.99] disabled:opacity-60"
             >
               {busy ? "Signing in…" : "Sign in"}
             </button>
-            <div className="mt-3 flex justify-between text-sm font-semibold text-neutral-900">
+            <div className="mt-4 flex justify-between text-sm font-medium text-neutral-600">
               <button
                 type="button"
+                className="hover:text-neutral-950"
                 onClick={() => {
                   setStep("email");
                   setCode("");
@@ -267,7 +310,7 @@ export function AuthSheet({
               >
                 ← Change email
               </button>
-              <button type="button" onClick={sendCode} disabled={busy || cooldown > 0} className="disabled:text-neutral-900/40">
+              <button type="button" onClick={sendCode} disabled={busy || cooldown > 0} className="hover:text-neutral-950 disabled:text-neutral-300">
                 {cooldown > 0 ? `Send a new code (${cooldown}s)` : "Send a new code"}
               </button>
             </div>

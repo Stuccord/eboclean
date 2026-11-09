@@ -119,3 +119,28 @@ body {
     animation: none;
   }
 }
+
+/* Sign-in sheet: fade the backdrop, slide the panel up */
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+.sheet-backdrop {
+  animation: sheet-fade 0.2s ease-out;
+}
+.sheet-panel {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop,
+  .sheet-panel {
+    animation: none;
+  }
+}

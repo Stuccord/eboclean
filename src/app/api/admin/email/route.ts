@@ -4,10 +4,12 @@ import { accounts } from "@/lib/db";
 import { loadAdminData, requireAdmin, STATUS_LABEL, userRows, type UserRow, type UserStatus } from "@/lib/admin";
 import { emailConfigured, sendEmails } from "@/lib/email";
 import { track } from "@/lib/events";
+import { waitlistMembers } from "@/lib/waitlistServer";
 
 // Email groups of users (announcements, win-backs, payment problems) and see what was sent.
 
-const SEGMENTS = ["all", ...Object.keys(STATUS_LABEL)] as const;
+// "waitlist" = people who joined the early-access waitlist (no account needed).
+const SEGMENTS = ["all", ...Object.keys(STATUS_LABEL), "waitlist"] as const;
 type Segment = (typeof SEGMENTS)[number];
 
 function inSegment(r: UserRow, s: Segment) {
@@ -19,7 +21,11 @@ export async function GET(req: NextRequest) {
   if (admin instanceof NextResponse) return admin;
   const d = await loadAdminData();
   const rows = userRows(d);
+  const waitlist = await waitlistMembers().catch(() => []);
   const segments = SEGMENTS.map((s) => {
+    if (s === "waitlist") {
+      return { id: s, label: "Waitlist (early access)", count: waitlist.length, optedOut: waitlist.filter((w) => w.unsubscribed).length };
+    }
     const members = rows.filter((r) => inSegment(r, s));
     return {
       id: s,
@@ -59,6 +65,31 @@ export async function POST(req: NextRequest) {
     const r = await sendEmails([{ to: admin.email, userId: admin.uid, subject: `[Test] ${body.subject}`, body: body.body, kind: body.kind }]);
     if (!r.sent) return NextResponse.json({ error: r.error ?? "Couldn't send." }, { status: 502 });
     return NextResponse.json({ ok: true, message: `Test sent to ${admin.email}.` });
+  }
+
+  if (body.segment === "waitlist") {
+    // Waitlist people aren't customers yet: always an announcement with an unsubscribe link.
+    const all = await waitlistMembers();
+    const list = all.filter((w) => !w.unsubscribed);
+    if (!list.length) return NextResponse.json({ error: "Nobody on the waitlist can receive this email." }, { status: 400 });
+    const r = await sendEmails(list.map((w) => ({ to: w.email, userId: null, subject: body.subject, body: body.body, kind: "announcement" })));
+    await track("email.broadcast", {
+      meta: {
+        by: admin.email,
+        segment: "waitlist",
+        kind: "announcement",
+        subject: body.subject,
+        sent: r.sent,
+        failed: r.failed,
+        skippedOptOut: all.length - list.length,
+        error: r.error,
+      },
+    });
+    if (!r.sent) return NextResponse.json({ error: r.error ?? "Couldn't send." }, { status: 502 });
+    return NextResponse.json({
+      ok: true,
+      message: `Sent to ${r.sent} ${r.sent === 1 ? "person" : "people"} on the waitlist${r.failed ? `, ${r.failed} failed (${r.error})` : ""}.`,
+    });
   }
 
   const rows = userRows(await loadAdminData()).filter((r) => inSegment(r, body.segment));

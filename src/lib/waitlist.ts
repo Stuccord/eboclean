@@ -4,6 +4,8 @@
 export const WAITLIST_EVENT = "waitlist.join";
 /** "Messiest spot" answered after joining (the join itself is not repeated). */
 export const WAITLIST_SPOT_EVENT = "waitlist.spot";
+/** Clicked unsubscribe in a waitlist email. */
+export const WAITLIST_UNSUB_EVENT = "waitlist.unsubscribed";
 
 /** "What's your messiest spot?" answers. */
 export const SPOTS = ["bedroom", "kitchen", "desk", "living room", "bathroom", "car", "everywhere"] as const;

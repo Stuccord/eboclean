@@ -9,7 +9,8 @@ export function emailConfigured() {
 
 export interface OutgoingEmail {
   to: string;
-  userId: string;
+  /** Account id, or null for waitlist people (no account yet). */
+  userId: string | null;
   subject: string;
   /** Plain text; blank lines become paragraphs. {{email}} is replaced with the recipient's address. */
   body: string;
@@ -21,13 +22,18 @@ function appUrl() {
   return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
-export function unsubscribeUrl(userId: string) {
-  return `${appUrl()}/api/email/unsubscribe?t=${encodeURIComponent(sign({ u: userId, p: "unsub" }))}`;
+/** Account emails unsubscribe the account; waitlist emails (no account) unsubscribe the address. */
+export function unsubscribeUrl(target: { userId: string | null; to: string }) {
+  const payload = target.userId ? { u: target.userId, p: "unsub" } : { w: target.to.trim().toLowerCase(), p: "unsub" };
+  return `${appUrl()}/api/email/unsubscribe?t=${encodeURIComponent(sign(payload))}`;
 }
 
-export function readUnsubscribeToken(token: string | null) {
-  const v = verify<{ u?: string; p?: string }>(token ?? undefined);
-  return v?.p === "unsub" && v.u ? v.u : null;
+export function readUnsubscribeToken(token: string | null): { userId: string } | { waitlistEmail: string } | null {
+  const v = verify<{ u?: string; w?: string; p?: string }>(token ?? undefined);
+  if (v?.p !== "unsub") return null;
+  if (v.u) return { userId: v.u };
+  if (v.w) return { waitlistEmail: v.w };
+  return null;
 }
 
 function escapeHtml(s: string) {
@@ -40,9 +46,10 @@ function render(e: OutgoingEmail) {
     .split(/\n\s*\n/)
     .map((p) => `<p style="margin:0 0 16px">${escapeHtml(p.trim()).replace(/\n/g, "<br>")}</p>`)
     .join("");
-  const unsub = e.kind === "announcement" ? unsubscribeUrl(e.userId) : null;
+  const unsub = e.kind === "announcement" ? unsubscribeUrl(e) : null;
+  const why = e.userId ? "you have an Eboclean account" : "you joined the Eboclean waitlist";
   const footer = unsub
-    ? `You're getting this because you have an Eboclean account. <a href="${unsub}" style="color:#737373">Unsubscribe</a>.`
+    ? `You're getting this because ${why}. <a href="${unsub}" style="color:#737373">Unsubscribe</a>.`
     : "You're getting this because of your Eboclean subscription.";
   const html = `<!doctype html><html><body style="margin:0;background:#f7f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;color:#0a0a0a">
 <div style="max-width:520px;margin:0 auto;padding:32px 20px">
