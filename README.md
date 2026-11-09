@@ -126,6 +126,17 @@ Open **https://eboclean-two.vercel.app/admin** and sign in with an email listed 
 
 The activity log lives in the `events` table: re-run `supabase/schema.sql` after updating. AI costs are estimated from the tokens each Claude call used.
 
+## Early-access waitlist (`/waitlist`)
+
+Landing page at **https://eboclean-two.vercel.app/waitlist**: phone mockup, email signup, then an optional "messiest spot?" question and a share button.
+
+- **Track where people come from:** add `?ref=` to the link you post, e.g. `/waitlist?ref=tiktok`, `?ref=reddit`, `?ref=instagram`.
+- **Storage:** each signup is a `waitlist.join` event (the spot answer is a `waitlist.spot` event) in the existing `events` table, so there's nothing extra to set up. Duplicate emails don't count twice.
+- **See signups:** admin dashboard → Activity, or download a spreadsheet at `/api/admin/waitlist` while signed in as an admin (`?format=json` for JSON).
+- **Offer wording:** `EARLY_BIRD_OFFER` and `EARLY_BIRD_SPOTS` in `src/lib/waitlist.ts`. Honour it at launch (e.g. a discounted first-year Paystack plan or coupon).
+- **Spam protection:** hidden honeypot field plus 20 signups per 10 minutes per IP.
+- Needs Supabase in production (same keys as accounts). Without them the page loads but signups fail.
+
 ## Live deployment (Vercel)
 
 Live at **https://eboclean-two.vercel.app** (deploys automatically when you push to `main` on GitHub).

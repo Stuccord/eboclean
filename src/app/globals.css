@@ -100,3 +100,22 @@ body {
     animation: none;
   }
 }
+
+/* Waitlist page: floating "mess" around the phone */
+@keyframes float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -14px;
+  }
+}
+.floater {
+  animation: float 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .floater {
+    animation: none;
+  }
+}

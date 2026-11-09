@@ -18,6 +18,10 @@ export default function PrivacyPage() {
           device.
         </li>
         <li>
+          <b>Waitlist sign-ups.</b> If you join the early-access waitlist, we keep your email, your answer to &quot;messiest
+          spot&quot; and the link you came from, only to tell you when Eboclean opens to you. Ask us anytime and we&apos;ll remove it.
+        </li>
+        <li>
           <b>Photos you choose to scan.</b> They are sent to our AI provider to create your cleaning plan. They are saved on your device
           and, if you are signed in, in private storage linked to your account so they sync. Photos are never public, and we don&apos;t
           look at them unless you ask us to help with a problem.
