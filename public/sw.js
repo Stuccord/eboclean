@@ -3,7 +3,7 @@
  * - Built JS/CSS/fonts/icons: cache first (file names change on every release).
  * - API calls: never cached (always fresh, private data).
  */
-const VERSION = "eboclean-v1";
+const VERSION = "eboclean-v2";
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const PRECACHE = ["/", "/offline.html", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -38,7 +38,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          if (res.ok) {
+          // Only the app itself ("/") is the offline copy; other pages (waitlist, legal) must not replace it.
+          if (res.ok && url.pathname === "/") {
             const copy = res.clone();
             caches.open(SHELL_CACHE).then((c) => c.put("/", copy));
           }

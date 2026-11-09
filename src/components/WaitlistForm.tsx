@@ -15,16 +15,31 @@ const SPOT_LABEL: Record<Spot, string> = {
   everywhere: "🌪️ Everywhere",
 };
 
-function joinWaitlist(body: Record<string, unknown>) {
-  return fetch("/api/waitlist", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  }).then(async (res) => {
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error ?? "Something went wrong. Please try again.");
-    return data as Result;
-  });
+const OFFLINE_MESSAGE = "We couldn't reach Eboclean. Check your internet connection and try again.";
+
+/** POST to the waitlist. Retries once if the connection drops (safe: the server ignores duplicate emails). */
+async function joinWaitlist(body: Record<string, unknown>): Promise<Result> {
+  const send = () =>
+    fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  let res: Response;
+  try {
+    res = await send();
+  } catch {
+    // Network error ("Failed to fetch"): wait a moment and try once more.
+    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      res = await send();
+    } catch {
+      throw new Error(OFFLINE_MESSAGE);
+    }
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? "Something went wrong. Please try again.");
+  return data as Result;
 }
 
 export function WaitlistForm({ earlyBird }: { earlyBird: number }) {
