@@ -40,9 +40,9 @@ const scanJsonSchema = {
   required: [
     "is_space",
     "zone_label",
+    "items_found",
     "mess_score",
     "headline",
-    "items_found",
     "steps",
     "encouragement",
     "comparison",
@@ -57,16 +57,9 @@ const scanJsonSchema = {
       type: "string",
       description: 'Short name for the area, e.g. "Bedroom floor", "Desk"',
     },
-    mess_score: {
-      type: "integer",
-      description: "0 (spotless) to 100 (total chaos), using the rubric",
-    },
-    headline: {
-      type: "string",
-      description: "One fun, kind, punchy line about the mess (max 12 words)",
-    },
     items_found: {
       type: "array",
+      description: "Everything visibly out of place, listed BEFORE scoring. Specific names and counts.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -76,6 +69,14 @@ const scanJsonSchema = {
           count: { type: "integer" },
         },
       },
+    },
+    mess_score: {
+      type: "integer",
+      description: "0 (spotless) to 100 (total chaos), using the rubric and the items listed above",
+    },
+    headline: {
+      type: "string",
+      description: "One fun, kind, punchy line about the mess (max 12 words)",
     },
     steps: {
       type: "array",
@@ -120,20 +121,32 @@ const scanJsonSchema = {
   },
 } as const;
 
+// Shared by the scan and room setup, so both give the same score for the same photo.
+const MESS_RUBRIC = `MESS SCORE RUBRIC (be consistent: the same photo must always get the same score, give or take 3):
+- 0-10: spotless, nothing out of place
+- 11-25: tidy, a few stray items, floor clear
+- 26-45: lived-in, clutter on one or two surfaces, floor mostly clear
+- 46-65: messy, clutter on several surfaces OR a clear patch of floor covered
+- 66-85: very messy, piles on the floor, floor largely covered, or dishes/food and trash left out
+- 86-100: total chaos, you can hardly see the floor or surfaces
+
+HOW TO SCORE:
+1. First list everything out of place (items_found).
+2. Judge how much of the visible floor and surfaces is covered, and whether there is trash, dirty dishes or food.
+3. Pick the band, then the number inside it. Use the HIGHEST band any clear signal points to:
+   - a pile of clothes or laundry spread across the floor: at least 60
+   - papers, toys or items scattered over a large part of the floor: at least 60
+   - dirty dishes, leftover food or trash out: at least 50
+   - floor largely covered: at least 70
+4. Judge only what is out of place. Neatly stored items, furniture and decor are not mess, and an unmade bed alone is lived-in (26-45), not messy.`;
+
 const SYSTEM_PROMPT = `You are Ebo, the kind, funny cleaning coach inside the Eboclean app, made for people who feel overwhelmed by mess (many users have ADHD).
 
 You look at a photo of a room or surface and return:
 1. A Mess Score from 0 to 100.
 2. A short, doable cleaning mission.
 
-MESS SCORE RUBRIC (be consistent; the same photo must get the same score):
-- 0-10: spotless, nothing out of place
-- 11-25: tidy, a few stray items
-- 26-45: lived-in, clutter on one or two surfaces
-- 46-65: messy, clutter on several surfaces or part of the floor
-- 66-85: very messy, piles, floor mostly covered, dishes or trash visible
-- 86-100: total chaos, hard to see surfaces or floor at all
-Base the score only on what is visible: amount of items out of place, how much floor and surface area is covered, trash, dishes, laundry.
+${MESS_RUBRIC}
 
 MISSION RULES:
 - 4 to 8 steps. Order them for quick wins first (trash and obvious grabs), then bigger groups.
@@ -141,6 +154,7 @@ MISSION RULES:
 - The total minutes must fit the user's time budget.
 - If energy is low, pick the easiest, highest-impact steps only and keep them tiny.
 - Group by category so the user moves around less.
+- ALREADY TIDY (score 15 or below): celebrate. Return no steps, or at most 2 optional one-minute touch-ups. Never invent chores like dusting or rearranging to fill the time budget.
 
 TONE:
 - Warm, playful, never shaming or judgmental. Mess is normal.
@@ -182,7 +196,7 @@ export async function scanRoom(req: ScanRequest): Promise<ScanResult> {
       effort: "low",
       format: { type: "json_schema", schema: scanJsonSchema },
     },
-    system: SYSTEM_PROMPT,
+    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     messages: [
       {
         role: "user",
@@ -288,10 +302,12 @@ RULES:
 - 5 to 8 recurring tasks. Each is one small, specific action taking 1 to 10 minutes.
 - Frequencies should be realistic and gentle: daily resets (1 day) only for things that truly pile up daily (dishes, trash, clothes on the floor); most tasks every 3 to 14 days; deep tasks every 14 to 30 days.
 - Prefer tiny, finishable tasks over big vague ones ("Wipe the bathroom sink" not "Clean bathroom").
-- Also give the current Mess Score with this rubric: 0-10 spotless, 11-25 tidy, 26-45 lived-in, 46-65 messy, 66-85 very messy, 86-100 total chaos.
+- Also give the current Mess Score using the rubric below.
 - Tone: warm, playful, never shaming.
 - Never comment on people or personal documents in the photo.
-- If the photo is not a room or space, set is_space to false, mess_score to 0, return no tasks, and kindly ask for a room photo in the headline.`;
+- If the photo is not a room or space, set is_space to false, mess_score to 0, return no tasks, and kindly ask for a room photo in the headline.
+
+${MESS_RUBRIC}`;
 
 export async function setupRoom(req: {
   imageBase64: string;
@@ -307,7 +323,7 @@ export async function setupRoom(req: {
       effort: "low",
       format: { type: "json_schema", schema: setupJsonSchema },
     },
-    system: SETUP_PROMPT,
+    system: [{ type: "text", text: SETUP_PROMPT, cache_control: { type: "ephemeral" } }],
     messages: [
       {
         role: "user",

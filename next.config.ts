@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    // Free Pexels stock photos used on the /waitlist page (before/after).
+    remotePatterns: [{ protocol: "https", hostname: "images.pexels.com", pathname: "/photos/**", search: "" }],
+  },
   async headers() {
     return [
       {
