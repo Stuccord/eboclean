@@ -8,6 +8,14 @@ import type { AiUsage } from "./aiCost";
 import { EARLY_BIRD_SPOTS } from "./waitlist";
 import { waitlistMembers } from "./waitlistServer";
 
+/**
+ * The one switch for the paywall. false = the app is free: any signed-in account can use everything
+ * (the daily and per-IP AI limits still apply) and new checkouts are refused. Set back to true to
+ * bring the trial + subscription paywall back; nothing else needs to change.
+ * Existing Paystack subscriptions keep running either way.
+ */
+export const PAYWALL_ENABLED = false;
+
 // ---------------- plans & limits ----------------
 /** Most AI calls (scans, after-photos, room setups) one account can make per UTC day. Protects your Claude bill. */
 export const DAILY_AI_LIMIT = 40;
@@ -265,7 +273,7 @@ export async function checkAllowance(req: NextRequest) {
   if (!state.userId) return deny("login");
   const who = { userId: state.userId, email: state.email };
 
-  let pro = trialActive(state);
+  let pro = !PAYWALL_ENABLED || trialActive(state);
   if (!pro) {
     try {
       pro = await isSubscribed(state);

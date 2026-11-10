@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { LogoMark } from "./Logo";
 
 export interface BillingStatus {
+  /** Paywall is switched off (PAYWALL_ENABLED in lib/billing.ts): full access for every account. */
+  free?: boolean;
   pro: boolean;
   subscribed: boolean;
   onTrial: boolean;
@@ -209,18 +211,23 @@ export function AccessGate({
   const [showRegular, setShowRegular] = useState(false);
 
   if (!email) {
+    const free = Boolean(status?.free);
     return (
       <section className="flex flex-1 flex-col items-center pt-10 text-center">
         <LogoMark size={88} />
         <h1 className="mt-6 text-3xl font-bold tracking-tight">Save your plan</h1>
         <p className="mt-2 max-w-xs text-neutral-500">
-          Create your account to keep your rooms and streak safe, then try Eboclean free for {TRIAL_DAYS} days.
+          {free
+            ? "Create your account to keep your rooms and streak safe. Eboclean is free to use."
+            : `Create your account to keep your rooms and streak safe, then try Eboclean free for ${TRIAL_DAYS} days.`}
         </p>
         <div className="mt-8 w-full space-y-3 text-left">
           {[
             ["🔒", "Your home, saved", "Rooms, tasks and photos sync to every device."],
             ["✉️", "No password", "We email you a 6-digit code to sign in."],
-            ["🎁", `${TRIAL_DAYS} days free`, "Try everything before you pay anything."],
+            free
+              ? ["🎁", "Free to use", "Everything is unlocked. No card needed."]
+              : ["🎁", `${TRIAL_DAYS} days free`, "Try everything before you pay anything."],
           ].map(([icon, title, text]) => (
             <div key={title} className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-neutral-100 text-xl">{icon}</span>
@@ -541,6 +548,8 @@ export function PlanCard({ status }: { status: BillingStatus | null }) {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!status || !status.pro) return null;
+  // Paywall off: only people with a real trial or subscription have a plan to show or cancel.
+  if (status.free && !status.subscribed && !status.onTrial) return null;
 
   async function manage() {
     setOpening(true);

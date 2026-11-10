@@ -1,5 +1,5 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
-import { earlyBirdOffer, isDemoBilling, isSubscribed, loadBilling, trialActive } from "@/lib/billing";
+import { earlyBirdOffer, isDemoBilling, isSubscribed, loadBilling, PAYWALL_ENABLED, trialActive } from "@/lib/billing";
 
 export async function GET(req: NextRequest) {
   await connection(); // always per-request (reads cookies); never prerendered
@@ -20,9 +20,12 @@ export async function GET(req: NextRequest) {
   // A card trial is also a (scheduled) subscription, so "onTrial" can be true alongside "subscribed".
   const onTrial = trialActive(state);
   // Early waitlist members see the early-bird price instead of the trial (only while not Pro).
-  const earlyBird = subscribed || onTrial ? null : await earlyBirdOffer(state).catch(() => null);
+  const free = !PAYWALL_ENABLED;
+  const earlyBird = free || subscribed || onTrial ? null : await earlyBirdOffer(state).catch(() => null);
   return NextResponse.json({
-    pro: subscribed || onTrial,
+    // Paywall off: everyone has full access (the app still asks for an account).
+    free,
+    pro: free || subscribed || onTrial,
     subscribed,
     onTrial,
     trialDaysLeft: onTrial && state.trialEndsAt ? Math.max(1, Math.ceil((state.trialEndsAt - Date.now()) / 86_400_000)) : 0,

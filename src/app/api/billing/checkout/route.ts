@@ -10,6 +10,7 @@ import {
   originOf,
   paystack,
   PaystackError,
+  PAYWALL_ENABLED,
   planCode,
   PLANS,
   saveBilling,
@@ -41,6 +42,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   const { plan } = body;
+
+  // Paywall off: nothing to buy, so never start a payment.
+  if (!PAYWALL_ENABLED) {
+    return NextResponse.json({ error: "Eboclean is free right now. There's nothing to pay for." }, { status: 409 });
+  }
 
   const state = await loadBilling(req);
   if (!state.userId || !state.email) {
