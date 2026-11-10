@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   CURRENCY,
   DEMO_CUSTOMER_ID,
+  EARLY_BIRD_CENTS,
+  earlyBirdOffer,
   isDemoBilling,
   loadBilling,
   originOf,
@@ -17,7 +19,12 @@ import {
 } from "@/lib/billing";
 import { track } from "@/lib/events";
 
-const BodySchema = z.object({ plan: z.enum(["yearly", "monthly"]), trial: z.boolean().optional() });
+const BodySchema = z.object({
+  plan: z.enum(["yearly", "monthly"]),
+  trial: z.boolean().optional(),
+  /** Early waitlist members: first year at EARLY_BIRD_CENTS, paid now, no trial. */
+  earlyBird: z.boolean().optional(),
+});
 
 /**
  * Starts a Paystack checkout.
@@ -39,6 +46,43 @@ export async function POST(req: NextRequest) {
   if (!state.userId || !state.email) {
     return NextResponse.json({ error: "Please sign in first.", needLogin: true }, { status: 401 });
   }
+  if (body.earlyBird) {
+    if (plan !== "yearly" || body.trial) return NextResponse.json({ error: "The early-bird price is for the yearly plan." }, { status: 400 });
+    const offer = await earlyBirdOffer(state);
+    if (!offer) return NextResponse.json({ error: "This early-bird price is for early waitlist members." }, { status: 403 });
+    await track("checkout.earlybird", { userId: state.userId, email: state.email, meta: { plan, position: offer.position } });
+
+    if (isDemoBilling()) {
+      const res = NextResponse.json({ url: "/?checkout=earlybird-started", demo: true });
+      await saveBilling(res, state, { customerId: DEMO_CUSTOMER_ID, customerCode: null, trialUsed: true, trialEndsAt: null });
+      await track("earlybird.purchased", { userId: state.userId, email: state.email, amount: EARLY_BIRD_CENTS, currency: CURRENCY, meta: { demo: true } });
+      return res;
+    }
+    if (!planCode("yearly")) {
+      console.error(`Missing ${PLANS.yearly.env}`);
+      return NextResponse.json({ error: "Payments aren't set up yet." }, { status: 500 });
+    }
+    try {
+      // A one-off charge for the first year; the yearly subscription is created after payment,
+      // with its first full-price charge a year from now (see /api/billing/success).
+      const data = await paystack<{ authorization_url: string }>("/transaction/initialize", {
+        method: "POST",
+        body: {
+          email: state.email,
+          amount: EARLY_BIRD_CENTS,
+          currency: CURRENCY,
+          channels: ["card"],
+          callback_url: `${originOf(req)}/api/billing/success`,
+          metadata: { app: "eboclean", kind: "earlybird", plan, user_id: state.userId },
+        },
+      });
+      return NextResponse.json({ url: data.authorization_url });
+    } catch (err) {
+      console.error("Paystack initialize error", err instanceof PaystackError ? err.message : err);
+      return NextResponse.json({ error: "Couldn't start checkout. Please try again." }, { status: 502 });
+    }
+  }
+
   const wantsTrial = Boolean(body.trial);
   if (wantsTrial && plan !== TRIAL_PLAN) {
     return NextResponse.json({ error: "The free trial is only on the yearly plan." }, { status: 400 });

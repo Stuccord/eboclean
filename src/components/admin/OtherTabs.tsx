@@ -34,6 +34,13 @@ export const EVENT_LABEL: Record<string, string> = {
   "email.trial_reminder": "Trial reminder sent",
   "email.unsubscribed": "Unsubscribed from emails",
   "admin.action": "Admin action",
+  "waitlist.join": "Joined the waitlist",
+  "waitlist.spot": "Answered messiest spot",
+  "waitlist.unsubscribed": "Unsubscribed from waitlist emails",
+  "checkout.earlybird": "Opened early-bird checkout",
+  "earlybird.purchased": "Bought the early-bird year",
+  "earlybird.failed": "Early-bird purchase failed",
+  "earlybird.card_not_reusable": "Early-bird card couldn't be saved",
 };
 
 type Ev = { id?: string; at: number; type: string; userId?: string | null; email?: string | null; amount: number | null; currency: string | null; meta: Record<string, unknown> | null };
@@ -330,6 +337,8 @@ const FILTERS = [
   ["user.", "Accounts"],
   ["trial.", "Trials"],
   ["checkout.", "Checkouts"],
+  ["waitlist.", "Waitlist"],
+  ["earlybird.", "Early bird"],
   ["paystack.", "Paystack"],
   ["ai.", "AI"],
   ["email.", "Emails"],

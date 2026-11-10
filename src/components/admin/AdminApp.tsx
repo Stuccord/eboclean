@@ -6,6 +6,7 @@ import { LogoMark } from "@/components/Logo";
 import { Btn, Columns, date, money, Notice, num, Panel, pct, StatusPill, STATUS_STYLE, Tile, usd, useApi } from "./shared";
 import { UsersTab } from "./UsersTab";
 import { ActivityTab, EmailTab, PaymentsTab } from "./OtherTabs";
+import { WaitlistTab } from "./WaitlistTab";
 
 export interface Overview {
   me: string;
@@ -50,7 +51,7 @@ export interface Overview {
   setup: { name: string; ok: boolean; detail: string }[];
 }
 
-const TABS = ["Overview", "Users", "Payments", "Emails", "Activity", "Setup"] as const;
+const TABS = ["Overview", "Users", "Waitlist", "Payments", "Emails", "Activity", "Setup"] as const;
 type Tab = (typeof TABS)[number];
 
 export function AdminApp() {
@@ -148,6 +149,7 @@ export function AdminApp() {
       <main className="mx-auto max-w-7xl space-y-4 px-4 py-5">
         {tab === "Overview" && <OverviewTab o={o} openUser={(id) => { setOpenUser(id); setTab("Users"); }} />}
         {tab === "Users" && <UsersTab currency={o.money.currency} openId={openUser} setOpenId={setOpenUser} onChanged={overview.reload} />}
+        {tab === "Waitlist" && <WaitlistTab openUser={(id) => { setOpenUser(id); setTab("Users"); }} onChanged={overview.reload} />}
         {tab === "Payments" && <PaymentsTab openUser={(id) => { setOpenUser(id); setTab("Users"); }} />}
         {tab === "Emails" && <EmailTab />}
         {tab === "Activity" && <ActivityTab openUser={(id) => { setOpenUser(id); setTab("Users"); }} />}

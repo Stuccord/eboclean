@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { accounts } from "./db";
 import { clientIp, rateLimit } from "./rateLimit";
-import { getSession } from "./session";
+import { getSession, normalizeEmail } from "./session";
 import { cookieOpts, sign, verify } from "./signing";
 import { track } from "./events";
 import type { AiUsage } from "./aiCost";
+import { EARLY_BIRD_SPOTS } from "./waitlist";
+import { waitlistMembers } from "./waitlistServer";
 
 // ---------------- plans & limits ----------------
 /** Most AI calls (scans, after-photos, room setups) one account can make per UTC day. Protects your Claude bill. */
@@ -380,6 +382,97 @@ export async function activateCardTrial(opts: {
     });
   }
   return "started";
+}
+
+// ---------------- early-bird price for waitlist members ----------------
+
+/** First year for early waitlist members: 50% off the yearly plan, paid upfront, no trial. */
+export const EARLY_BIRD_CENTS = 1499;
+const YEAR_MS = 365 * DAY_MS;
+
+/**
+ * The early-bird offer for this account, or null. Eligible: signed in, email is among the first
+ * EARLY_BIRD_SPOTS on the waitlist, and no trial or early-bird used yet (both use the trial claim).
+ */
+/** Off until launch day: set EARLY_BIRD_ENABLED=1 once a test-mode purchase has worked end to end. */
+export function earlyBirdEnabled() {
+  return process.env.EARLY_BIRD_ENABLED === "1";
+}
+
+export async function earlyBirdOffer(state: BillingState): Promise<{ position: number; cents: number } | null> {
+  if (!earlyBirdEnabled()) return null;
+  if (!state.userId || !state.email || state.trialUsed) return null;
+  const email = normalizeEmail(state.email);
+  const member = (await waitlistMembers()).find((m) => m.email === email);
+  if (!member || member.position > EARLY_BIRD_SPOTS) return null;
+  return { position: member.position, cents: EARLY_BIRD_CENTS };
+}
+
+/**
+ * Turns a successful early-bird payment into a year of Pro: subscribes the customer to the yearly
+ * plan with the first full-price charge one year from now, and marks the trial as used (no trial
+ * for early-bird). Safe to call twice (success redirect and webhook): only the first call works.
+ * If the subscription can't be created, the payment is refunded and the claim released.
+ */
+export async function activateEarlyBird(opts: {
+  userId: string;
+  email: string;
+  reference: string;
+  customerId: number;
+  customerCode: string;
+  authorizationCode: string;
+}): Promise<"started" | "already"> {
+  const db = accounts();
+  await db.getProfile(opts.userId, opts.email); // make sure the profile row exists
+  if (!(await db.claimTrial(opts.userId))) return "already";
+
+  const code = planCode("yearly");
+  const renewsAt = Date.now() + YEAR_MS;
+  try {
+    if (!code) throw new Error(`Missing ${PLANS.yearly.env}`);
+    await paystack("/subscription", {
+      method: "POST",
+      body: {
+        customer: opts.customerCode,
+        plan: code,
+        authorization: opts.authorizationCode,
+        start_date: new Date(renewsAt).toISOString(),
+      },
+    });
+    await db.updateProfile(opts.userId, {
+      paystackCustomerId: opts.customerId,
+      paystackCustomerCode: opts.customerCode,
+      trialUsed: true,
+      trialEndsAt: null,
+    });
+    forgetStatus(opts.customerId);
+    await track("earlybird.purchased", {
+      userId: opts.userId,
+      email: opts.email,
+      amount: EARLY_BIRD_CENTS,
+      currency: CURRENCY,
+      meta: { reference: opts.reference, renewsAt },
+    });
+    return "started";
+  } catch (err) {
+    // They paid but we couldn't set up the plan: give the money and the offer back.
+    await db.updateProfile(opts.userId, { trialUsed: false }).catch(() => undefined);
+    await paystack("/refund", { method: "POST", body: { transaction: opts.reference } }).catch(async (refundErr) => {
+      await track("refund.failed", {
+        userId: opts.userId,
+        email: opts.email,
+        amount: EARLY_BIRD_CENTS,
+        currency: CURRENCY,
+        meta: { reference: opts.reference, kind: "earlybird", error: refundErr instanceof Error ? refundErr.message : String(refundErr) },
+      });
+    });
+    await track("earlybird.failed", {
+      userId: opts.userId,
+      email: opts.email,
+      meta: { reference: opts.reference, error: err instanceof Error ? err.message.slice(0, 300) : String(err) },
+    });
+    throw err;
+  }
 }
 
 export function originOf(req: NextRequest) {

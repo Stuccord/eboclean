@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { accounts, type AdminProfile, type AppEvent } from "./db";
-import { CURRENCY, DEMO_CUSTOMER_ID, isDemoBilling, paystack, PLANS, TRIAL_CARD_CHECK } from "./billing";
+import { CURRENCY, DEMO_CUSTOMER_ID, earlyBirdEnabled, isDemoBilling, paystack, PLANS, TRIAL_CARD_CHECK } from "./billing";
 import { isDemoMode } from "./apiHelpers";
 import { emailConfigured } from "./email";
-import { getSession, type Session } from "./session";
+import { getSession, normalizeEmail, type Session } from "./session";
+import { EARLY_BIRD_SPOTS } from "./waitlist";
+import { waitlistMembers } from "./waitlistServer";
 
 // Data and access control for the admin dashboard (/admin).
 // Admins are the signed-in accounts whose email is listed in ADMIN_EMAILS (comma-separated).
@@ -274,6 +276,68 @@ export function userRows(d: AdminData) {
 
 export type UserRow = ReturnType<typeof userRows>[number];
 
+// ---------------- waitlist early-bird perk ----------------
+/**
+ * Where each waitlist member stands with the early-bird price:
+ * - claimed:      bought the early-bird year
+ * - offered:      has an account and sees the offer (or will, once it's switched on)
+ * - problem:      tried to buy it and the payment or card setup failed (they were refunded)
+ * - missed:       has an account but can no longer get the offer (used the trial or paid full price)
+ * - no_account:   hasn't signed up with this email yet
+ * - not_eligible: joined after the first EARLY_BIRD_SPOTS
+ */
+export type PerkStatus = "claimed" | "offered" | "problem" | "missed" | "no_account" | "not_eligible";
+
+const HAS_ACCESS: UserStatus[] = ["trialing", "trial_cancelled", "paying", "cancelling", "payment_failed"];
+
+export async function waitlistPerks(d: AdminData) {
+  const [members, perkEvents] = await Promise.all([
+    waitlistMembers(),
+    accounts().listEvents({ types: ["earlybird.purchased", "earlybird.failed", "earlybird.card_not_reusable"], limit: 50_000 }),
+  ]);
+  const key = (e: AppEvent) => (e.email ? normalizeEmail(e.email) : null);
+  const claimedAt = new Map<string, number>();
+  const failedAt = new Map<string, number>();
+  for (const e of perkEvents) {
+    const k = key(e);
+    if (!k) continue;
+    const map = e.type === "earlybird.purchased" ? claimedAt : failedAt;
+    map.set(k, Math.max(map.get(k) ?? 0, e.at));
+  }
+  const users = new Map(userRows(d).map((u) => [normalizeEmail(u.email), u]));
+  const trialUsed = new Map(d.profiles.map((p) => [p.id, p.trialUsed]));
+  const enabled = earlyBirdEnabled();
+
+  const rows = members.map((m) => {
+    const user = users.get(m.email) ?? null;
+    const eligible = m.position <= EARLY_BIRD_SPOTS;
+    const hasAccess = user ? HAS_ACCESS.includes(user.status) : false;
+    let perk: PerkStatus;
+    if (claimedAt.has(m.email)) perk = "claimed";
+    else if (!eligible) perk = "not_eligible";
+    else if (!user) perk = "no_account";
+    else if (trialUsed.get(user.id) || hasAccess) perk = "missed";
+    else if (failedAt.has(m.email)) perk = "problem";
+    else perk = "offered";
+    return {
+      ...m,
+      eligible,
+      perk,
+      claimedAt: claimedAt.get(m.email) ?? null,
+      userId: user?.id ?? null,
+      userStatus: user?.status ?? null,
+      /** The offer can be handed back only when they aren't on a trial or plan right now. */
+      canRestore: perk === "missed" && !hasAccess,
+    };
+  });
+
+  const counts = { claimed: 0, offered: 0, problem: 0, missed: 0, no_account: 0, not_eligible: 0 } satisfies Record<PerkStatus, number>;
+  for (const r of rows) counts[r.perk]++;
+  return { enabled, spots: EARLY_BIRD_SPOTS, total: rows.length, eligible: rows.filter((r) => r.eligible).length, counts, rows };
+}
+
+export type WaitlistPerks = Awaited<ReturnType<typeof waitlistPerks>>;
+
 export interface Alert {
   level: "critical" | "warning" | "info";
   title: string;
@@ -315,7 +379,7 @@ export function setupChecklist() {
   ];
 }
 
-export function buildOverview(d: AdminData) {
+export function buildOverview(d: AdminData, perks: WaitlistPerks | null = null) {
   const { now } = d;
   const rows = userRows(d);
   const statusCounts = Object.fromEntries(Object.keys(STATUS_LABEL).map((k) => [k, 0])) as Record<UserStatus, number>;
@@ -488,6 +552,36 @@ export function buildOverview(d: AdminData) {
   const trialsEnding = rows.filter((r) => r.status === "trialing" && r.trialEndsAt && r.trialEndsAt < now + 2 * DAY).length;
   if (trialsEnding) alerts.push({ level: "info", title: `${trialsEnding} trial(s) convert in the next 48 hours`, detail: "They'll be charged automatically." });
   if (money.failedCharges30) alerts.push({ level: "info", title: `${money.failedCharges30} failed payment attempt(s) in 30 days`, detail: "See Payments → Failed." });
+
+  // Waitlist members must get the early-bird price they were promised.
+  if (perks) {
+    const c = perks.counts;
+    const waiting = c.offered + c.problem;
+    if (!perks.enabled && waiting)
+      alerts.push({
+        level: "critical",
+        title: `${waiting} waitlist member(s) signed up but can't see their early-bird price`,
+        detail: "The offer is switched off. Set EARLY_BIRD_ENABLED=1 in Vercel and redeploy.",
+      });
+    else if (!perks.enabled && perks.eligible - c.claimed > 0)
+      alerts.push({
+        level: "info",
+        title: "Early-bird offer is switched off",
+        detail: `${perks.eligible - c.claimed} waitlist member(s) are owed it. Set EARLY_BIRD_ENABLED=1 before you invite them.`,
+      });
+    if (c.missed)
+      alerts.push({
+        level: "warning",
+        title: `${c.missed} waitlist member(s) didn't get their early-bird price`,
+        detail: "They used the trial or paid full price instead. See the Waitlist tab to give the offer back.",
+      });
+    if (c.problem)
+      alerts.push({
+        level: "warning",
+        title: `${c.problem} early-bird purchase(s) failed`,
+        detail: "They were refunded and can try again. See the Waitlist tab and email them.",
+      });
+  }
 
   return {
     generatedAt: now,

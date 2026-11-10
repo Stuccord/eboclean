@@ -1,5 +1,5 @@
 import { connection, NextResponse, type NextRequest } from "next/server";
-import { isDemoBilling, isSubscribed, loadBilling, trialActive } from "@/lib/billing";
+import { earlyBirdOffer, isDemoBilling, isSubscribed, loadBilling, trialActive } from "@/lib/billing";
 
 export async function GET(req: NextRequest) {
   await connection(); // always per-request (reads cookies); never prerendered
@@ -19,6 +19,8 @@ export async function GET(req: NextRequest) {
   }
   // A card trial is also a (scheduled) subscription, so "onTrial" can be true alongside "subscribed".
   const onTrial = trialActive(state);
+  // Early waitlist members see the early-bird price instead of the trial (only while not Pro).
+  const earlyBird = subscribed || onTrial ? null : await earlyBirdOffer(state).catch(() => null);
   return NextResponse.json({
     pro: subscribed || onTrial,
     subscribed,
@@ -30,5 +32,6 @@ export async function GET(req: NextRequest) {
     demoBilling: isDemoBilling(),
     trialEndsAt: onTrial ? state.trialEndsAt : null,
     canManage: subscribed,
+    earlyBird,
   });
 }

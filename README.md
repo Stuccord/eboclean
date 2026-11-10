@@ -136,6 +136,23 @@ Landing page at **https://eboclean-two.vercel.app/waitlist**: phone mockup, emai
 - **Offer wording:** `EARLY_BIRD_OFFER` and `EARLY_BIRD_SPOTS` in `src/lib/waitlist.ts`. Honour it at launch (e.g. a discounted first-year Paystack plan or coupon).
 - **Spam protection:** hidden honeypot field plus 20 signups per 10 minutes per IP.
 - Needs Supabase in production (same keys as accounts). Without them the page loads but signups fail.
+- **Email the waitlist:** admin → Emails → group "Waitlist (early access)". Always sent as an announcement with its own unsubscribe link (waitlist people have no account); unsubscribes are `waitlist.unsubscribed` events and are skipped.
+
+### Early-bird price (first 500 on the waitlist)
+
+Waitlist members in the first `EARLY_BIRD_SPOTS` (500) who sign in with the same email see an early-bird screen instead of the trial: **$14.99 for the first year, paid today, no trial**, then the yearly plan renews at $29.99. They can tap "See other plans" for the normal trial instead.
+
+How it works: checkout charges `EARLY_BIRD_CENTS` once (Paystack `kind: "earlybird"`); on success (redirect or webhook) `activateEarlyBird` subscribes the customer to the yearly plan with `start_date` one year out and marks the trial used (the same atomic claim prevents double processing). If the subscription can't be created, the payment is refunded.
+
+**Off by default.** It only shows when `EARLY_BIRD_ENABLED=1`.
+
+**Checking everyone got it:** `/admin` → Waitlist lists every member with their early-bird status (got it, offer ready, purchase failed, missed it, not signed up yet). "Give offer back" restores it for someone who used the trial instead, once they have no trial or plan running. The Overview tab warns when the offer is off or members have missed it.
+
+**Launch-day checklist**
+1. With Paystack **test** keys (`sk_test_…` and test plan codes) in `.env.local` and `EARLY_BIRD_ENABLED=1`: join the waitlist, sign in with that email, buy the early bird with a Paystack test card. Check in the Paystack dashboard that the $14.99 charge went through, a yearly subscription exists with its next payment ~1 year out, and the app shows PRO.
+2. In Vercel set `EARLY_BIRD_ENABLED=1` (Production) and redeploy.
+3. Admin → Emails → "Waitlist (early access)": send yourself a test, then send the launch email.
+4. Point the waitlist page's button at the app.
 
 ## Live deployment (Vercel)
 

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   activateCardTrial,
+  activateEarlyBird,
+  EARLY_BIRD_CENTS,
   CURRENCY,
   forgetStatus,
   isDemoBilling,
@@ -16,6 +18,7 @@ import { track } from "@/lib/events";
 
 interface VerifiedTransaction {
   status: string;
+  amount: number;
   currency: string;
   reference: string;
   customer: { id: number; customer_code: string; email: string };
@@ -42,6 +45,27 @@ export async function GET(req: NextRequest) {
     if (!state.userId || !state.email || meta.user_id !== state.userId) {
       console.error("Payment/account mismatch", { reference });
       return go("error");
+    }
+
+    if (meta.kind === "earlybird") {
+      if (tx.amount !== EARLY_BIRD_CENTS) {
+        console.error("Early-bird amount mismatch", { reference: tx.reference, amount: tx.amount });
+        return go("error");
+      }
+      if (!tx.authorization?.authorization_code || !tx.authorization.reusable) {
+        await paystack("/refund", { method: "POST", body: { transaction: tx.reference } }).catch(() => undefined);
+        await track("earlybird.card_not_reusable", { userId: state.userId, email: state.email, meta: { reference: tx.reference } });
+        return go("card-not-reusable");
+      }
+      await activateEarlyBird({
+        userId: state.userId,
+        email: state.email,
+        reference: tx.reference,
+        customerId: tx.customer.id,
+        customerCode: tx.customer.customer_code,
+        authorizationCode: tx.authorization.authorization_code,
+      });
+      return go("earlybird-started");
     }
 
     if (meta.kind === "trial") {

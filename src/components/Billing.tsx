@@ -14,6 +14,8 @@ export interface BillingStatus {
   email: string | null;
   demoBilling: boolean;
   canManage: boolean;
+  /** Early waitlist member: first year at a discount, no trial. */
+  earlyBird?: { position: number; cents: number } | null;
 }
 
 export type CheckoutNotice =
@@ -22,6 +24,7 @@ export type CheckoutNotice =
   | "error"
   | "demo-cancelled"
   | "trial-started"
+  | "earlybird-started"
   | "card-not-reusable"
   | "signed-in-saved"
   | "signed-in-restored"
@@ -61,7 +64,7 @@ function lastKnownStatus(): BillingStatus | null {
   }
 }
 
-const URL_NOTICES: CheckoutNotice[] = ["success", "cancelled", "error", "trial-started", "card-not-reusable"];
+const URL_NOTICES: CheckoutNotice[] = ["success", "cancelled", "error", "trial-started", "earlybird-started", "card-not-reusable"];
 
 /** Loads plan status from the server and reports checkout results from the URL. */
 export function useBilling() {
@@ -202,6 +205,8 @@ export function AccessGate({
   const [loading, setLoading] = useState<"pay" | "restore" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
+  /** Early waitlist members can still choose the regular plans (with the trial). */
+  const [showRegular, setShowRegular] = useState(false);
 
   if (!email) {
     return (
@@ -306,6 +311,85 @@ export function AccessGate({
   );
 
   const primary = "w-full rounded-full bg-neutral-950 py-4 text-lg font-semibold text-white shadow-lg shadow-black/15 active:scale-[0.98] disabled:opacity-60";
+
+  // Early waitlist members: first year half price, paid today, no trial.
+  const offer = status?.earlyBird ?? null;
+  if (offer && !showRegular) {
+    const price = `$${(offer.cents / 100).toFixed(2)}`;
+    const perMonth = `$${(offer.cents / 100 / 12).toFixed(2)}`;
+    const percentOff = Math.round((1 - offer.cents / 2999) * 100);
+
+    async function checkoutEarlyBird() {
+      setLoading("pay");
+      setError(null);
+      try {
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: "yearly", earlyBird: true }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) throw new Error(data.error ?? "Couldn't start checkout.");
+        window.location.href = data.url;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Couldn't start checkout.");
+        setLoading(null);
+      }
+    }
+
+    return (
+      <section className="flex flex-1 flex-col pt-2">
+        {topBar}
+        <div className="mt-3 text-center">
+          <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-800">
+            Waitlist #{offer.position} · Early bird
+          </span>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">Your early-bird price is ready</h1>
+          <p className="mt-2 text-neutral-500">Thanks for joining the waitlist early. Your first year is half price.</p>
+        </div>
+
+        <div className="my-8 flex flex-1 items-center justify-center">
+          <div className="w-full rounded-3xl bg-white p-6 text-center shadow-xl shadow-black/10 ring-2 ring-neutral-950">
+            <p className="text-sm font-semibold text-neutral-500">Yearly plan · your first year</p>
+            <p className="mt-2 flex items-baseline justify-center gap-2">
+              <span className="text-lg font-semibold text-neutral-400 line-through">{YEARLY.price}</span>
+              <span className="text-5xl font-bold tracking-tight">{price}</span>
+            </p>
+            <p className="mt-1 text-sm text-neutral-500">
+              about {perMonth} a month · {percentOff}% off
+            </p>
+            <ul className="mt-5 space-y-2.5 border-t border-neutral-100 pt-5 text-left text-sm">
+              {["Room scans and 10-minute cleaning plans", "Ebo, your friendly cleaning coach", "Streaks, points and your before/after timeline"].map(
+                (t) => (
+                  <li key={t} className="flex items-center gap-2.5">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    {t}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        </div>
+
+        {error && <p className="mb-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+        <div className="space-y-3">
+          <button onClick={checkoutEarlyBird} disabled={loading !== null} className={primary}>
+            {loading === "pay" ? "Opening secure checkout…" : `Get my first year for ${price}`}
+          </button>
+          <p className="text-center text-xs text-neutral-500">
+            {price} charged today in US dollars through Paystack. After your first year it renews at {YEARLY.price} a year. Cancel
+            anytime.
+          </p>
+          <button onClick={() => setShowRegular(true)} className="w-full py-1 text-sm font-semibold text-neutral-500 hover:text-neutral-900">
+            See other plans
+          </button>
+        </div>
+        {footer}
+      </section>
+    );
+  }
 
   // Step 1: what you get, free.
   if (shown === 0) {
@@ -505,7 +589,8 @@ export function CheckoutToast({ notice, onClose }: { notice: CheckoutNotice; onC
   const text = {
     success: "🎉 Welcome to Pro! Thanks for subscribing.",
     "trial-started": `🎉 Your ${TRIAL_DAYS}-day free trial has started. Enjoy everything Eboclean has!`,
-    "card-not-reusable": "That card can't be used for a subscription. Please try another card. The $1.00 check was refunded.",
+    "earlybird-started": "🎉 You're in! Your first year of Eboclean is half price. Welcome aboard.",
+    "card-not-reusable": "That card can't be used for a subscription. Please try another card. You've been refunded.",
     cancelled: "No worries. Nothing was charged.",
     error: "We couldn't confirm your payment. If you were charged, contact support.",
     "demo-cancelled": "Demo subscription cancelled.",
@@ -514,7 +599,7 @@ export function CheckoutToast({ notice, onClose }: { notice: CheckoutNotice; onC
     "signed-out": "Signed out. Your data is safe in your account.",
   }[notice];
   const tone =
-    notice === "success" || notice === "trial-started" || notice === "signed-in-saved" || notice === "signed-in-restored"
+    notice === "success" || notice === "trial-started" || notice === "earlybird-started" || notice === "signed-in-saved" || notice === "signed-in-restored"
       ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
       : notice === "error" || notice === "card-not-reusable"
         ? "bg-rose-50 text-rose-800 ring-rose-200"

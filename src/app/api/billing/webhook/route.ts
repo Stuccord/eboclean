@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { accounts } from "@/lib/db";
-import { activateCardTrial, CURRENCY, forgetStatus, PLANS, type PlanId } from "@/lib/billing";
+import { activateCardTrial, activateEarlyBird, CURRENCY, EARLY_BIRD_CENTS, forgetStatus, PLANS, type PlanId } from "@/lib/billing";
 import { track } from "@/lib/events";
 import { forgetPaystackCache } from "@/lib/admin";
 
@@ -75,7 +75,27 @@ export async function POST(req: NextRequest) {
       const meta = typeof evt.data.metadata === "object" && evt.data.metadata ? evt.data.metadata : {};
       // Link the paying customer to the account that started checkout (only our own checkouts).
       const owned = meta.app === "eboclean" && meta.user_id && /^[A-Za-z0-9-]{1,64}$/.test(meta.user_id);
-      if (owned && meta.kind === "trial") {
+      if (owned && meta.kind === "earlybird") {
+        // Buyer closed the tab before coming back: set up their early-bird year here instead.
+        const auth = evt.data.authorization;
+        if (
+          evt.data.amount === EARLY_BIRD_CENTS &&
+          auth?.authorization_code &&
+          auth.reusable &&
+          evt.data.reference &&
+          evt.data.customer?.customer_code &&
+          evt.data.customer.email
+        ) {
+          await activateEarlyBird({
+            userId: meta.user_id!,
+            email: evt.data.customer.email,
+            reference: evt.data.reference,
+            customerId,
+            customerCode: evt.data.customer.customer_code,
+            authorizationCode: auth.authorization_code,
+          });
+        }
+      } else if (owned && meta.kind === "trial") {
         // Buyer closed the tab before coming back: start their trial here instead.
         const auth = evt.data.authorization;
         if (auth?.authorization_code && auth.reusable && evt.data.reference && evt.data.customer?.customer_code && evt.data.customer.email) {
