@@ -64,18 +64,28 @@ export function pushSoon(uid: string) {
   }, 1500);
 }
 
+function hasProgress(p: Progress | null | undefined) {
+  return Boolean(p && (p.points > 0 || p.missions > 0 || p.streak > 0 || p.lastMissionDay));
+}
+
 /**
  * First sync after signing in:
- * - empty account  -> upload this device's data
  * - account has data -> download it here (replacing this device's copy)
+ * - empty account, device has data -> upload this device's data
+ * - both empty -> nothing to do ("empty"): the user still needs to set up a home
+ *
+ * "Has data" means real content. A blank progress record (zero points, no sessions)
+ * doesn't count, or a blank account would wipe this device and claim a restore.
  */
-export async function syncAfterSignIn(uid: string): Promise<"uploaded" | "downloaded"> {
+export async function syncAfterSignIn(uid: string): Promise<"uploaded" | "downloaded" | "empty"> {
   const res = await fetch("/api/sync", { cache: "no-store" });
   if (!res.ok) throw new Error("Couldn't load your account data.");
   const remote = (await res.json()) as { rooms: Room[]; history: HistoryEntry[]; progress: Progress | null; updatedAt: number };
 
-  const hasRemote = remote.updatedAt > 0 && (remote.rooms.length > 0 || remote.history.length > 0 || remote.progress);
+  const hasRemote = remote.updatedAt > 0 && (remote.rooms.length > 0 || remote.history.length > 0 || hasProgress(remote.progress));
   if (!hasRemote) {
+    const [rooms, history] = await Promise.all([getRooms(), getHistory()]);
+    if (rooms.length === 0 && history.length === 0 && !hasProgress(loadProgress())) return "empty";
     await pushNow(uid);
     return "uploaded";
   }

@@ -239,7 +239,7 @@ export default function Home() {
             const result = await account.completeSignIn(user);
             await billing.refresh();
             setAuth(null);
-            billing.setNotice(result === "downloaded" ? "signed-in-restored" : "signed-in-saved");
+            billing.setNotice(result === "downloaded" ? "signed-in-restored" : result === "empty" ? "signed-in-empty" : "signed-in-saved");
           }}
         />
       )}

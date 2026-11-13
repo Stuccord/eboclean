@@ -30,6 +30,7 @@ export type CheckoutNotice =
   | "card-not-reusable"
   | "signed-in-saved"
   | "signed-in-restored"
+  | "signed-in-empty"
   | "signed-out"
   | null;
 
@@ -605,10 +606,11 @@ export function CheckoutToast({ notice, onClose }: { notice: CheckoutNotice; onC
     "demo-cancelled": "Demo subscription cancelled.",
     "signed-in-saved": "✅ Signed in. Your rooms and progress are now saved to your account.",
     "signed-in-restored": "👋 Welcome back! Your home, streak and plan are restored on this device.",
+    "signed-in-empty": "✅ Signed in. This account has no home saved yet, so let's set one up.",
     "signed-out": "Signed out. Your data is safe in your account.",
   }[notice];
   const tone =
-    notice === "success" || notice === "trial-started" || notice === "earlybird-started" || notice === "signed-in-saved" || notice === "signed-in-restored"
+    notice === "success" || notice === "trial-started" || notice === "earlybird-started" || notice === "signed-in-saved" || notice === "signed-in-restored" || notice === "signed-in-empty"
       ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
       : notice === "error" || notice === "card-not-reusable"
         ? "bg-rose-50 text-rose-800 ring-rose-200"
